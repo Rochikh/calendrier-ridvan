@@ -17,11 +17,28 @@ export default function Star({ day, fillColor, borderColor }: StarProps) {
     >
       <svg 
         xmlns="http://www.w3.org/2000/svg" 
-        viewBox="0 0 120 120"
+        viewBox="0 0 100 100"
         className={`absolute w-full h-full transition-transform duration-300 ${hovered ? 'scale-110' : 'scale-100'}`}
       >
         <path 
-          d="M60 10 L66.1 35.2 L89.5 17.8 L83.4 42.2 L110 42.2 L87.3 60 L99.4 84.8 L73.5 71 L60 95 L46.5 71 L20.6 84.8 L32.7 60 L10 42.2 L36.6 42.2 L30.5 17.8 L54 35.2 Z"
+          d="M50 5 
+             L55.8 31.3 
+             L77.8 14.5 
+             L70.6 40.3 
+             L96.6 35.3 
+             L77.1 54.4 
+             L95 75.2 
+             L68.7 69.4 
+             L70.6 96.6 
+             L50 80 
+             L29.4 96.6 
+             L31.3 69.4 
+             L5 75.2 
+             L22.9 54.4 
+             L3.4 35.3 
+             L29.4 40.3 
+             L22.2 14.5 
+             L44.2 31.3 Z"
           fill={fillColor}
           stroke={borderColor}
           strokeWidth="2"
