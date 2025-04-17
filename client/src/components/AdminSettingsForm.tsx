@@ -1,0 +1,248 @@
+import { useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { Settings } from "@shared/schema";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { 
+  Card, CardContent, 
+  Form, FormControl, FormField, FormItem, FormLabel, FormDescription,
+  Input,
+  Button
+} from "@/components/ui";
+
+// Settings form schema
+const formSchema = z.object({
+  totalDays: z.number().min(1).max(30),
+  titleColor: z.string().regex(/^#([A-Fa-f0-9]{6})$/, "Invalid hex color code"),
+  starColor: z.string().regex(/^#([A-Fa-f0-9]{6})$/, "Invalid hex color code"),
+  starBorderColor: z.string().regex(/^#([A-Fa-f0-9]{6})$/, "Invalid hex color code"),
+  backgroundImage: z.string().url("Invalid URL")
+});
+
+type FormValues = z.infer<typeof formSchema>;
+
+interface AdminSettingsFormProps {
+  settings?: Settings;
+}
+
+export default function AdminSettingsForm({ settings }: AdminSettingsFormProps) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  
+  // Default settings values
+  const defaultValues = {
+    totalDays: settings?.totalDays || 19,
+    titleColor: settings?.titleColor || "#1E3A8A",
+    starColor: settings?.starColor || "#FCD34D",
+    starBorderColor: settings?.starBorderColor || "#F59E0B",
+    backgroundImage: settings?.backgroundImage || "https://images.unsplash.com/photo-1462331940025-496dfbfc7564?ixlib=rb-1.2.1&auto=format&fit=crop&w=2048&q=80"
+  };
+  
+  // Form setup
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues
+  });
+  
+  // Update settings when props change
+  if (settings && 
+      (settings.totalDays !== form.getValues().totalDays ||
+       settings.titleColor !== form.getValues().titleColor ||
+       settings.starColor !== form.getValues().starColor ||
+       settings.starBorderColor !== form.getValues().starBorderColor ||
+       settings.backgroundImage !== form.getValues().backgroundImage)) {
+    form.reset({
+      totalDays: settings.totalDays,
+      titleColor: settings.titleColor,
+      starColor: settings.starColor,
+      starBorderColor: settings.starBorderColor,
+      backgroundImage: settings.backgroundImage
+    });
+  }
+  
+  // Update settings mutation
+  const updateSettingsMutation = useMutation({
+    mutationFn: async (data: FormValues) => {
+      return apiRequest("PUT", "/api/settings", data);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Settings saved",
+        description: "The calendar settings have been updated",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
+    },
+    onError: (error) => {
+      console.error("Update settings error:", error);
+      toast({
+        title: "Failed to save settings",
+        description: "There was an error saving the settings",
+        variant: "destructive"
+      });
+    }
+  });
+  
+  // Handle form submission
+  const onSubmit = (data: FormValues) => {
+    updateSettingsMutation.mutate(data);
+  };
+  
+  // Sync color inputs with hex inputs
+  const [colorInputs, setColorInputs] = useState({
+    titleColor: form.getValues().titleColor,
+    starColor: form.getValues().starColor,
+    starBorderColor: form.getValues().starBorderColor
+  });
+  
+  const handleColorChange = (colorType: string, value: string) => {
+    setColorInputs(prev => ({ ...prev, [colorType]: value }));
+    form.setValue(colorType as "titleColor" | "starColor" | "starBorderColor", value, { shouldValidate: true });
+  };
+  
+  return (
+    <Card>
+      <CardContent className="p-6">
+        <h2 className="text-xl font-[Cinzel] text-[#1E3A8A] mb-6">Visual Settings</h2>
+        
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            {/* Number of Days Setting */}
+            <FormField
+              control={form.control}
+              name="totalDays"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="block text-gray-700 font-[Inter] mb-2">Number of Days</FormLabel>
+                  <FormControl>
+                    <Input 
+                      type="number" 
+                      min={1} 
+                      max={30} 
+                      {...field}
+                      // Convert string to number for the input
+                      onChange={e => field.onChange(parseInt(e.target.value) || 1)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1E3A8A] font-[Inter]"
+                    />
+                  </FormControl>
+                  <FormDescription className="text-sm text-gray-500 mt-1">Set between 1-30 days</FormDescription>
+                </FormItem>
+              )}
+            />
+            
+            {/* Title Color Setting */}
+            <FormField
+              control={form.control}
+              name="titleColor"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="block text-gray-700 font-[Inter] mb-2">Title Color</FormLabel>
+                  <div className="flex items-center space-x-2">
+                    <input 
+                      type="color" 
+                      value={colorInputs.titleColor}
+                      onChange={e => handleColorChange("titleColor", e.target.value)}
+                      className="w-10 h-10 rounded cursor-pointer"
+                    />
+                    <FormControl>
+                      <Input 
+                        {...field}
+                        placeholder="#1E3A8A" 
+                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1E3A8A] font-[Inter]"
+                        onChange={e => handleColorChange("titleColor", e.target.value)}
+                      />
+                    </FormControl>
+                  </div>
+                </FormItem>
+              )}
+            />
+            
+            {/* Star Color Setting */}
+            <FormField
+              control={form.control}
+              name="starColor"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="block text-gray-700 font-[Inter] mb-2">Star Color</FormLabel>
+                  <div className="flex items-center space-x-2">
+                    <input 
+                      type="color" 
+                      value={colorInputs.starColor}
+                      onChange={e => handleColorChange("starColor", e.target.value)}
+                      className="w-10 h-10 rounded cursor-pointer"
+                    />
+                    <FormControl>
+                      <Input 
+                        {...field}
+                        placeholder="#FCD34D" 
+                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1E3A8A] font-[Inter]"
+                        onChange={e => handleColorChange("starColor", e.target.value)}
+                      />
+                    </FormControl>
+                  </div>
+                </FormItem>
+              )}
+            />
+            
+            {/* Star Border Color Setting */}
+            <FormField
+              control={form.control}
+              name="starBorderColor"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="block text-gray-700 font-[Inter] mb-2">Star Border Color</FormLabel>
+                  <div className="flex items-center space-x-2">
+                    <input 
+                      type="color" 
+                      value={colorInputs.starBorderColor}
+                      onChange={e => handleColorChange("starBorderColor", e.target.value)}
+                      className="w-10 h-10 rounded cursor-pointer"
+                    />
+                    <FormControl>
+                      <Input 
+                        {...field}
+                        placeholder="#F59E0B" 
+                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1E3A8A] font-[Inter]"
+                        onChange={e => handleColorChange("starBorderColor", e.target.value)}
+                      />
+                    </FormControl>
+                  </div>
+                </FormItem>
+              )}
+            />
+            
+            {/* Background Image Setting */}
+            <FormField
+              control={form.control}
+              name="backgroundImage"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="block text-gray-700 font-[Inter] mb-2">Background Image URL</FormLabel>
+                  <FormControl>
+                    <Input 
+                      {...field}
+                      type="url" 
+                      placeholder="Enter background image URL" 
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1E3A8A] font-[Inter]"
+                    />
+                  </FormControl>
+                  <FormDescription className="text-sm text-gray-500 mt-1">Leave empty for default</FormDescription>
+                </FormItem>
+              )}
+            />
+            
+            <Button 
+              type="submit" 
+              className="bg-[#1E3A8A] text-white font-[Inter] font-medium py-2 px-6 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+              disabled={updateSettingsMutation.isPending}
+            >
+              {updateSettingsMutation.isPending ? "Saving..." : "Save Settings"}
+            </Button>
+          </form>
+        </Form>
+      </CardContent>
+    </Card>
+  );
+}
