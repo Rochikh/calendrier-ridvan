@@ -30,37 +30,34 @@ const initializeDatabase = async () => {
   }
 };
 
-// Auth middleware
-const requireAuth = async (req: Request, res: Response, next: NextFunction) => {
-  const sessionToken = req.session.token;
-  
-  if (!sessionToken) {
-    return res.status(401).json({ message: "Unauthorized: No session found" });
+// Auth middleware (simplified to use session directly)
+const requireAuth = (req: Request, res: Response, next: NextFunction) => {
+  if (!req.session.token) {
+    return res.status(401).json({ message: "Unauthorized: Please log in to access this resource" });
   }
-  
-  try {
-    const session = await storage.getSessionByToken(sessionToken);
-    
-    if (!session) {
-      return res.status(401).json({ message: "Unauthorized: Invalid session" });
-    }
-    
-    // Check session expiration
-    if (new Date(session.expiresAt) < new Date()) {
-      await storage.deleteSession(sessionToken);
-      return res.status(401).json({ message: "Unauthorized: Session expired" });
-    }
-    
-    next();
-  } catch (error) {
-    console.error("Auth middleware error:", error);
-    return res.status(500).json({ message: "Internal server error" });
-  }
+  next();
 };
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Setup session middleware
+  // Create and configure PostgreSQL session store
+  const PgSession = connectPgSimple(session);
+
+  // Create session table if it doesn't exist
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS "session" (
+      "sid" varchar NOT NULL COLLATE "default",
+      "sess" json NOT NULL,
+      "expire" timestamp(6) NOT NULL,
+      CONSTRAINT "session_pkey" PRIMARY KEY ("sid")
+    )
+  `);
+
+  // Setup session middleware with PostgreSQL store
   app.use(session({
+    store: new PgSession({
+      pool,
+      tableName: 'session'
+    }),
     secret: process.env.SESSION_SECRET || "ridvan-calendar-secret",
     resave: false,
     saveUninitialized: false,
@@ -79,62 +76,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Invalid password" });
       }
       
-      // Create new session
+      // Create a simpler session token
       const token = randomBytes(32).toString("hex");
-      const now = new Date();
-      const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24 hours
       
-      const session = await storage.createSession({
-        token,
-        expiresAt: expiresAt.toISOString(),
-        createdAt: now.toISOString()
-      });
-      
-      // Save token to session
+      // Save token to session (express-session will save this to DB)
       req.session.token = token;
       
-      return res.status(200).json({ message: "Login successful" });
+      // Save session explicitly
+      req.session.save((err) => {
+        if (err) {
+          console.error("Session save error:", err);
+          return res.status(500).json({ message: "Error saving session" });
+        }
+        
+        return res.status(200).json({ message: "Login successful" });
+      });
     } catch (error) {
       console.error("Login error:", error);
       return res.status(500).json({ message: "Error during login" });
     }
   });
   
-  app.post("/api/logout", async (req, res) => {
-    try {
-      const token = req.session.token;
-      
-      if (token) {
-        await storage.deleteSession(token);
-        req.session.destroy((err) => {
-          if (err) {
-            console.error("Session destruction error:", err);
-          }
-        });
+  app.post("/api/logout", (req, res) => {
+    // Simply destroy the session
+    req.session.destroy((err) => {
+      if (err) {
+        console.error("Session destruction error:", err);
+        return res.status(500).json({ message: "Error during logout" });
       }
       
       return res.status(200).json({ message: "Logout successful" });
-    } catch (error) {
-      console.error("Logout error:", error);
-      return res.status(500).json({ message: "Error during logout" });
-    }
+    });
   });
   
   app.get("/api/auth/status", async (req, res) => {
     try {
-      const token = req.session.token;
-      
-      if (!token) {
-        return res.status(200).json({ isLoggedIn: false });
-      }
-      
-      const session = await storage.getSessionByToken(token);
-      
-      if (!session || new Date(session.expiresAt) < new Date()) {
-        return res.status(200).json({ isLoggedIn: false });
-      }
-      
-      return res.status(200).json({ isLoggedIn: true });
+      // Just check if the token exists in the session
+      // This is simpler and will work with the session store
+      const isLoggedIn = !!req.session.token;
+      return res.status(200).json({ isLoggedIn });
     } catch (error) {
       console.error("Auth status error:", error);
       return res.status(200).json({ isLoggedIn: false });
