@@ -66,20 +66,22 @@ export default function AdminSettingsForm({ settings }: AdminSettingsFormProps) 
   // Update settings mutation
   const updateSettingsMutation = useMutation({
     mutationFn: async (data: FormValues) => {
-      return apiRequest("PUT", "/api/settings", data);
+      const response = await apiRequest("PUT", "/api/settings", data);
+      return await response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log("Settings saved successfully:", data);
       toast({
-        title: "Settings saved",
-        description: "The calendar settings have been updated",
+        title: "Paramètres sauvegardés",
+        description: "Les paramètres du calendrier ont été mis à jour",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
     },
     onError: (error) => {
       console.error("Update settings error:", error);
       toast({
-        title: "Failed to save settings",
-        description: "There was an error saving the settings",
+        title: "Échec de la sauvegarde",
+        description: "Une erreur s'est produite lors de la sauvegarde des paramètres",
         variant: "destructive"
       });
     }

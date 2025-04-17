@@ -87,22 +87,70 @@ export default function AdminContentForm({ totalDays }: AdminContentFormProps) {
   // Update form when content is loaded
   useEffect(() => {
     if (content) {
-      const { title, type, content: contentData } = content;
+      const { title, type, content: contentObj } = content;
+      
+      // Create a typed content data object
+      const contentData: Record<string, string> = {};
+      
+      // Type-safe content handling based on content type
+      if (contentObj && typeof contentObj === 'object') {
+        switch (type) {
+          case 'text':
+            if ('text' in contentObj && typeof contentObj.text === 'string') {
+              contentData.text = contentObj.text;
+            }
+            break;
+          case 'image':
+            if ('imageUrl' in contentObj && typeof contentObj.imageUrl === 'string') {
+              contentData.imageUrl = contentObj.imageUrl;
+            }
+            if ('imageCaption' in contentObj && typeof contentObj.imageCaption === 'string') {
+              contentData.imageCaption = contentObj.imageCaption;
+            }
+            break;
+          case 'video':
+            if ('videoUrl' in contentObj && typeof contentObj.videoUrl === 'string') {
+              contentData.videoUrl = contentObj.videoUrl;
+            }
+            break;
+          case 'audio':
+            if ('audioUrl' in contentObj && typeof contentObj.audioUrl === 'string') {
+              contentData.audioUrl = contentObj.audioUrl;
+            }
+            break;
+          case 'citation':
+            if ('citationText' in contentObj && typeof contentObj.citationText === 'string') {
+              contentData.citationText = contentObj.citationText;
+            }
+            if ('citationSource' in contentObj && typeof contentObj.citationSource === 'string') {
+              contentData.citationSource = contentObj.citationSource;
+            }
+            break;
+          case 'link':
+            if ('linkUrl' in contentObj && typeof contentObj.linkUrl === 'string') {
+              contentData.linkUrl = contentObj.linkUrl;
+            }
+            if ('linkDescription' in contentObj && typeof contentObj.linkDescription === 'string') {
+              contentData.linkDescription = contentObj.linkDescription;
+            }
+            break;
+        }
+      }
       
       // Reset form with content values
       form.reset({
         title,
         type: type as ContentType,
         // Set appropriate content field based on type
-        text: type === "text" ? contentData.text : "",
-        imageUrl: type === "image" ? contentData.imageUrl : "",
-        imageCaption: type === "image" ? contentData.imageCaption : "",
-        videoUrl: type === "video" ? contentData.videoUrl : "",
-        audioUrl: type === "audio" ? contentData.audioUrl : "",
-        citationText: type === "citation" ? contentData.citationText : "",
-        citationSource: type === "citation" ? contentData.citationSource : "",
-        linkUrl: type === "link" ? contentData.linkUrl : "",
-        linkDescription: type === "link" ? contentData.linkDescription : ""
+        text: contentData.text || "",
+        imageUrl: contentData.imageUrl || "",
+        imageCaption: contentData.imageCaption || "",
+        videoUrl: contentData.videoUrl || "",
+        audioUrl: contentData.audioUrl || "",
+        citationText: contentData.citationText || "",
+        citationSource: contentData.citationSource || "",
+        linkUrl: contentData.linkUrl || "",
+        linkDescription: contentData.linkDescription || ""
       });
     } else {
       // Reset form with empty values for new content
