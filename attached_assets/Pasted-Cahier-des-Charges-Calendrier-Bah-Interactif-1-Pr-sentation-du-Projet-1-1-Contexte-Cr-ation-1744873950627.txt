@@ -1,0 +1,134 @@
+Cahier des Charges : Calendrier Bahá'í Interactif
+1. Présentation du Projet
+1.1 Contexte
+Création d'un calendrier interactif Bahá'í pour la période de Riḍván (19 jours) présentant un contenu spirituel quotidien dans une application web déployée sur Replit.
+
+1.2 Objectifs
+Créer une expérience immersive de découverte spirituelle via un calendrier de 19 jours
+Présenter divers types de contenu (texte, image, vidéo, citations) de manière intuitive
+Assurer la persistance des données entre les redémarrages de l'application
+Permettre une administration simple avec des fonctionnalités de personnalisation
+2. Spécifications Techniques
+2.1 Architecture
+Frontend : React avec TailwindCSS
+Backend : Node.js avec Express
+Base de données : PostgreSQL (via Neon.tech)
+Déploiement : Replit
+2.2 Structure de la Base de Données
+Table settings : Stockage des paramètres de personnalisation (couleurs, images de fond)
+Table content : Stockage du contenu journalier (par jour de 1 à 19)
+Table session : Gestion des sessions administratives
+2.3 Compatibilité
+Utilisation exclusive des modules ES (ESM) et non CommonJS
+Application responsive pour mobile, tablette et desktop
+Compatible avec les navigateurs modernes (Chrome, Firefox, Safari, Edge)
+3. Fonctionnalités Principales
+3.1 Interface Utilisateur
+Écran d'accueil
+
+Fond cosmique personnalisable
+Affichage du titre "Riḍván" avec couleur paramétrable
+Grille de 19 étoiles numérotées (une par jour)
+Affichage du Contenu Journalier
+
+Modal de consultation du contenu au clic sur une étoile
+Types de contenu supportés : texte, image, vidéo, audio, citation, lien externe
+Affichage adapté selon le type de contenu (sans iframe pour les vidéos)
+3.2 Interface Administrateur
+Authentification
+
+Mot de passe fixe : "9999"
+Session persistante grâce à la table PostgreSQL session
+Gestion du Contenu
+
+Formulaire d'ajout/modification pour chaque jour
+Sélection du type de contenu
+Aperçu immédiat pour certains types (images)
+Sauvegarde sécurisée dans la base de données
+Personnalisation Visuelle
+
+Modification de la couleur du titre (défaut: "#1E3A8A")
+Modification de la couleur des étoiles (défaut: "#FCD34D")
+Modification de la couleur de bordure des étoiles (défaut: "#F59E0B")
+Personnalisation de l'image de fond (défaut: "/cosmic-background.jpg")
+4. Problématiques Identifiées et Solutions
+4.1 Persistance des Données
+Problématique : Perte des données après redémarrage du serveur Replit.
+Solution :
+
+Utilisation de PostgreSQL via Neon.tech pour la persistance des données
+Table session pour conserver les sessions d'administration
+Initialisation automatique des tables et des valeurs par défaut au démarrage
+4.2 Compatibilité des Modules JS
+Problématique : Conflit entre CommonJS (require) et ES Modules (import/export).
+Solution :
+
+Utilisation cohérente des ES Modules dans tout le projet
+Extension des fichiers .mjs pour les scripts principaux
+Configuration appropriée dans package.json (type: "module")
+4.3 Affichage des Médias
+Problématique : Les liens YouTube se transforment automatiquement en iframes.
+Solution :
+
+Affichage des URLs en texte brut avec lien cliquable
+Pas d'intégration automatique d'iframes pour les vidéos
+4.4 Redémarrage du Serveur
+Problématique : Difficulté à maintenir le serveur en vie sur Replit.
+Solution :
+
+Script de déploiement unique (deployment.mjs) combinant toutes les fonctionnalités
+Configuration appropriée dans .replit.deploy pour le démarrage automatique
+Script de redémarrage automatique en cas de crash
+4.5 Accès à l'Administration
+Problématique : Routes d'administration inaccessibles ou nécessitant une réauthentification fréquente.
+Solution :
+
+Routes dédiées (/login-page, /admin-page) générant du HTML directement
+Stockage des sessions dans la base de données PostgreSQL
+Middleware d'authentification robuste
+5. Spécifications Visuelles
+5.1 Page d'Accueil
+Fond cosmique avec étoiles
+Titre "Riḍván" en grand format, couleur personnalisable
+Étoiles à 5 branches avec numéros pour chaque jour
+Effet d'agrandissement au survol des étoiles
+Lien discret vers l'administration en bas de page
+5.2 Modal de Contenu
+Fond blanc, texte sombre pour la lisibilité
+Titre du contenu en couleur personnalisable
+Corps du contenu adapté au type de média
+Bouton de fermeture en haut à droite
+Fermeture possible en cliquant en dehors
+5.3 Interface Administrateur
+Formulaire de connexion épuré (mot de passe uniquement)
+Interface à deux colonnes (contenu + paramètres)
+Prévisualisation des couleurs par des pastilles colorées
+Aperçu des contenus de type image
+6. Sécurité et Performance
+6.1 Sécurité
+Authentification par mot de passe fixe ("9999")
+Sessions sécurisées avec PostgreSQL
+Protection contre les injections SQL via paramétrage des requêtes
+6.2 Performance
+Chargement dynamique des contenus journaliers
+HTML généré côté serveur pour un affichage rapide
+Code JavaScript minimaliste pour l'interface utilisateur
+7. Contraintes et Spécificités Replit
+7.1 Contraintes
+Port d'écoute obligatoire : 0.0.0.0 (toutes les interfaces)
+Variables d'environnement nécessaires : DATABASE_URL, PORT (3000), NODE_ENV, SESSION_SECRET
+Redémarrages fréquents du serveur par la plateforme
+7.2 Spécificités
+Script de déploiement auto-suffisant (deployment.mjs)
+Configuration .replit.deploy pour le démarrage automatique
+Initialisation automatique des tables au démarrage
+Valeurs par défaut robustes en cas d'erreur de connexion à la base de données
+8. Livraison et Maintenance
+8.1 Procédure de Déploiement
+Mise à jour du script deployment.mjs
+Vérification de la configuration .replit.deploy
+Déploiement via l'interface Replit
+8.2 Maintenance
+Surveillance des logs pour détecter les problèmes de connexion à la base de données
+Vérification régulière de la persistance des données
+Sauvegarde périodique du contenu via l'exportation JSON
