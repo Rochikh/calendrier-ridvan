@@ -4,8 +4,17 @@ import { storage } from "./storage";
 import { randomBytes } from "crypto";
 import { contentDataSchema, contentTypeSchema, insertContentSchema, insertSettingsSchema } from "@shared/schema";
 import session from "express-session";
+import connectPgSimple from "connect-pg-simple";
+import { pool } from "./db";
 import { z } from "zod";
 import { ZodError } from "zod";
+
+// Extend express-session declarations to include token
+declare module 'express-session' {
+  export interface Session {
+    token?: string;
+  }
+}
 
 // Fixed admin password
 const ADMIN_PASSWORD = "9999";
