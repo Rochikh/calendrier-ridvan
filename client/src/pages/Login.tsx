@@ -3,12 +3,13 @@ import { useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { apiRequest } from "@/lib/queryClient";
+import { login } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { queryClient } from "@/lib/queryClient";
 
 // Login form schema
 const loginSchema = z.object({
@@ -35,7 +36,9 @@ export default function Login() {
     setIsLoading(true);
     
     try {
-      await apiRequest("POST", "/api/login", { password: data.password });
+      await login(data.password);
+      // Invalidate auth status query to force refetch
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/status"] });
       toast({
         title: "Login successful",
         description: "You are now logged in as administrator",

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Settings } from "@shared/schema";
-import { apiRequest } from "@/lib/queryClient";
+import { logout } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import useIsLoggedIn from "@/hooks/useIsLoggedIn";
 import AdminContentForm from "@/components/AdminContentForm";
@@ -34,7 +34,9 @@ export default function Admin() {
   // Handle logout
   const handleLogout = async () => {
     try {
-      await apiRequest("POST", "/api/logout", {});
+      await logout();
+      // Invalidate auth status query to force refetch
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/status"] });
       toast({
         title: "Logout successful",
         description: "You have been logged out"

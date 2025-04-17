@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { getAuthStatus } from "@/lib/api";
 
 interface AuthStatus {
   isLoggedIn: boolean;
@@ -8,10 +9,13 @@ interface AuthStatus {
 export default function useIsLoggedIn() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   
-  const { data, isLoading, error } = useQuery<AuthStatus>({
+  const { data, isLoading, error, refetch } = useQuery<AuthStatus>({
     queryKey: ["/api/auth/status"],
+    queryFn: async () => {
+      return await getAuthStatus();
+    },
     refetchOnWindowFocus: true,
-    refetchInterval: 5 * 60 * 1000, // Refetch every 5 minutes
+    refetchInterval: 30 * 1000, // Refetch every 30 seconds
     refetchIntervalInBackground: false
   });
   
@@ -21,5 +25,5 @@ export default function useIsLoggedIn() {
     }
   }, [data]);
   
-  return { isLoggedIn, isLoading, error };
+  return { isLoggedIn, isLoading, error, refetch };
 }
