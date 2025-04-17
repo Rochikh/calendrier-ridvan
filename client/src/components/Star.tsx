@@ -21,7 +21,7 @@ export default function Star({ day, fillColor, borderColor }: StarProps) {
         className={`absolute w-full h-full transition-transform duration-300 ${hovered ? 'scale-110' : 'scale-100'}`}
       >
         <path 
-          d="M50 0 L57.2 34.5 L93.3 19.1 L72.2 50 L93.3 80.9 L57.2 65.5 L50 100 L42.8 65.5 L6.7 80.9 L27.8 50 L6.7 19.1 L42.8 34.5 Z"
+          d="M50 0 L61.1 31.9 L94.7 29.1 L72.5 56.5 L85.5 88.9 L50 77.2 L14.5 88.9 L27.5 56.5 L5.3 29.1 L38.9 31.9 Z"
           fill={fillColor}
           stroke={borderColor}
           strokeWidth="2"
