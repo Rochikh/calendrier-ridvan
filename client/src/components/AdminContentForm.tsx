@@ -158,16 +158,19 @@ export default function AdminContentForm({ totalDays }: AdminContentFormProps) {
           break;
       }
       
-      return apiRequest("PUT", `/api/content/${selectedDay}`, {
+      const response = await apiRequest("PUT", `/api/content/${selectedDay}`, {
         title: data.title,
         type: data.type,
         content: contentData
       });
+      
+      return await response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log("Content saved successfully:", data);
       toast({
-        title: "Content saved",
-        description: `Content for Day ${selectedDay} has been updated`,
+        title: "Contenu sauvegardé",
+        description: `Le contenu pour le jour ${selectedDay} a été mis à jour`,
       });
       queryClient.invalidateQueries({ queryKey: ["/api/content", selectedDay] });
       queryClient.invalidateQueries({ queryKey: ["/api/content"] });
@@ -175,8 +178,8 @@ export default function AdminContentForm({ totalDays }: AdminContentFormProps) {
     onError: (error) => {
       console.error("Update content error:", error);
       toast({
-        title: "Failed to save content",
-        description: "There was an error saving the content",
+        title: "Échec de la sauvegarde",
+        description: "Une erreur s'est produite lors de la sauvegarde du contenu",
         variant: "destructive"
       });
     }
