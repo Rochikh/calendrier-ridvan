@@ -1,58 +1,33 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useLocation } from "wouter";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Settings } from "@shared/schema";
-import { logout } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import useIsLoggedIn from "@/hooks/useIsLoggedIn";
+import { useAuth } from "@/contexts/AuthContext";
 import AdminContentForm from "@/components/AdminContentForm";
 import AdminSettingsForm from "@/components/AdminSettingsForm";
 
 export default function Admin() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const { isLoggedIn, isLoading: isAuthLoading } = useIsLoggedIn();
+  const { logout } = useAuth();
 
   // Fetch settings
   const { data: settings, isLoading: isLoadingSettings } = useQuery<Settings>({
     queryKey: ["/api/settings"],
   });
 
-  // Check if user is logged in
-  useEffect(() => {
-    if (!isAuthLoading && !isLoggedIn) {
-      toast({
-        title: "Authentication required",
-        description: "Please log in to access the admin dashboard",
-        variant: "destructive"
-      });
-      navigate("/login");
-    }
-  }, [isLoggedIn, isAuthLoading, navigate, toast]);
-
   // Handle logout
   const handleLogout = async () => {
     try {
       await logout();
-      // Invalidate auth status query to force refetch
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/status"] });
-      toast({
-        title: "Logout successful",
-        description: "You have been logged out"
-      });
       navigate("/");
     } catch (error) {
       console.error("Logout error:", error);
-      toast({
-        title: "Logout failed",
-        description: "Error during logout",
-        variant: "destructive"
-      });
     }
   };
 
-  if (isAuthLoading || !isLoggedIn) {
+  if (isLoadingSettings) {
     return <div className="min-h-screen bg-gray-100 flex items-center justify-center">Loading...</div>;
   }
 

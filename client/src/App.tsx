@@ -1,4 +1,4 @@
-import { Switch, Route, Router, useLocation } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -7,6 +7,8 @@ import Home from "@/pages/Home";
 import Login from "@/pages/Login";
 import Admin from "@/pages/Admin";
 import { useEffect } from "react";
+import { AuthProvider } from "./contexts/AuthContext";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 
 function RouterWithPathnameUpdater() {
   const [location, setLocation] = useLocation();
@@ -28,7 +30,7 @@ function RouterWithPathnameUpdater() {
     <Switch>
       <Route path="/" component={Home} />
       <Route path="/login" component={Login} />
-      <Route path="/admin" component={Admin} />
+      <ProtectedRoute path="/admin" component={Admin} />
       {/* Fallback to 404 */}
       <Route component={NotFound} />
     </Switch>
@@ -38,8 +40,10 @@ function RouterWithPathnameUpdater() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <RouterWithPathnameUpdater />
-      <Toaster />
+      <AuthProvider>
+        <RouterWithPathnameUpdater />
+        <Toaster />
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

@@ -1,19 +1,18 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { login } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { queryClient } from "@/lib/queryClient";
+import { useAuth } from "@/contexts/AuthContext";
 
 // Login form schema
 const loginSchema = z.object({
-  password: z.string().min(1, "Password is required")
+  password: z.string().min(1, "Le mot de passe est requis")
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
@@ -22,6 +21,14 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const [, navigate] = useLocation();
   const { toast } = useToast();
+  const { login, isLoggedIn } = useAuth();
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (isLoggedIn) {
+      navigate("/admin");
+    }
+  }, [isLoggedIn, navigate]);
 
   // Initialize form
   const form = useForm<LoginFormValues>({
@@ -36,21 +43,12 @@ export default function Login() {
     setIsLoading(true);
     
     try {
-      await login(data.password);
-      // Invalidate auth status query to force refetch
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/status"] });
-      toast({
-        title: "Login successful",
-        description: "You are now logged in as administrator",
-      });
-      navigate("/admin");
+      const success = await login(data.password);
+      if (success) {
+        navigate("/admin");
+      }
     } catch (error) {
       console.error("Login error:", error);
-      toast({
-        title: "Login failed",
-        description: "Invalid administrator password",
-        variant: "destructive"
-      });
     } finally {
       setIsLoading(false);
     }
