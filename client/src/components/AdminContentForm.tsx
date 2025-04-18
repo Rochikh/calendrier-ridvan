@@ -91,10 +91,11 @@ type FormValues = z.infer<typeof formSchema>;
 
 interface AdminContentFormProps {
   totalDays: number;
+  initialDay?: number;
 }
 
-export default function AdminContentForm({ totalDays }: AdminContentFormProps) {
-  const [selectedDay, setSelectedDay] = useState(1);
+export default function AdminContentForm({ totalDays, initialDay = 1 }: AdminContentFormProps) {
+  const [selectedDay, setSelectedDay] = useState(initialDay);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -316,6 +317,13 @@ export default function AdminContentForm({ totalDays }: AdminContentFormProps) {
   
   // Handle image preview
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  
+  // Update selectedDay when initialDay prop changes
+  useEffect(() => {
+    if (initialDay !== selectedDay) {
+      setSelectedDay(initialDay);
+    }
+  }, [initialDay, selectedDay]);
   
   useEffect(() => {
     const imageUrl = form.watch("imageUrl");
