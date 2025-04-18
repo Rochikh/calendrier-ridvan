@@ -18,36 +18,73 @@ const formSchema = z.object({
   title: z.string().min(1, "Title is required"),
   type: contentTypeSchema,
   // Content fields - conditionally required based on type
-  text: z.string().optional(),
-  imageUrl: z.string().url().optional(),
-  imageCaption: z.string().optional(),
-  videoUrl: z.string().url().optional(),
-  audioUrl: z.string().url().optional(),
-  citationText: z.string().optional(),
-  citationSource: z.string().optional(),
-  linkUrl: z.string().url().optional(),
-  linkDescription: z.string().optional()
-}).refine(data => {
+  text: z.string().optional().or(z.literal("")),
+  imageUrl: z.string().url("URL invalide").optional().or(z.literal("")),
+  imageCaption: z.string().optional().or(z.literal("")),
+  videoUrl: z.string().url("URL invalide").optional().or(z.literal("")),
+  audioUrl: z.string().url("URL invalide").optional().or(z.literal("")),
+  citationText: z.string().optional().or(z.literal("")),
+  citationSource: z.string().optional().or(z.literal("")),
+  linkUrl: z.string().url("URL invalide").optional().or(z.literal("")),
+  linkDescription: z.string().optional().or(z.literal(""))
+}).superRefine((data, ctx) => {
   // Validate required fields based on type
   switch (data.type) {
     case "text":
-      return !!data.text;
+      if (!data.text) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Le contenu texte est requis",
+          path: ["text"]
+        });
+      }
+      break;
     case "image":
-      return !!data.imageUrl;
+      if (!data.imageUrl) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "L'URL de l'image est requise",
+          path: ["imageUrl"]
+        });
+      }
+      break;
     case "video":
-      return !!data.videoUrl;
+      if (!data.videoUrl) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "L'URL de la vidéo est requise",
+          path: ["videoUrl"]
+        });
+      }
+      break;
     case "audio":
-      return !!data.audioUrl;
+      if (!data.audioUrl) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "L'URL du fichier audio est requise",
+          path: ["audioUrl"]
+        });
+      }
+      break;
     case "citation":
-      return !!data.citationText;
+      if (!data.citationText) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Le texte de citation est requis",
+          path: ["citationText"]
+        });
+      }
+      break;
     case "link":
-      return !!data.linkUrl;
-    default:
-      return false;
+      if (!data.linkUrl) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "L'URL du lien est requise",
+          path: ["linkUrl"]
+        });
+      }
+      break;
   }
-}, {
-  message: "Required fields for selected content type are missing",
-  path: ["type"]
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -206,13 +243,38 @@ export default function AdminContentForm({ totalDays }: AdminContentFormProps) {
           break;
       }
       
-      const response = await apiRequest("PUT", `/api/content/${selectedDay}`, {
+      console.log("Sending request to PUT /api/content/" + selectedDay);
+      console.log("Request payload:", {
         title: data.title,
         type: data.type,
         content: contentData
       });
       
-      return await response.json();
+      try {
+        const response = await fetch(`/api/content/${selectedDay}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            title: data.title,
+            type: data.type,
+            content: contentData
+          }),
+          credentials: 'include'
+        });
+        
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
+        }
+        
+        const responseData = await response.json();
+        console.log("API response:", responseData);
+        return responseData;
+      } catch (error) {
+        console.error("API request failed:", error);
+        throw error;
+      }
     },
     onSuccess: (data) => {
       console.log("Content saved successfully:", data);
@@ -240,7 +302,13 @@ export default function AdminContentForm({ totalDays }: AdminContentFormProps) {
   
   // Handle form submission
   const onSubmit = (data: FormValues) => {
-    updateContentMutation.mutate(data);
+    console.log("Submitting form with data:", data);
+    try {
+      updateContentMutation.mutate(data);
+      console.log("Mutation called successfully");
+    } catch (error) {
+      console.error("Error during mutation:", error);
+    }
   };
   
   // Get content type for conditional rendering
@@ -524,12 +592,26 @@ export default function AdminContentForm({ totalDays }: AdminContentFormProps) {
               </>
             )}
             
+            {/* Display form errors */}
+            {Object.keys(form.formState.errors).length > 0 && (
+              <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg mb-4">
+                <p className="font-medium">Des erreurs sont présentes dans le formulaire :</p>
+                <ul className="list-disc list-inside mt-1">
+                  {Object.entries(form.formState.errors).map(([field, error]) => (
+                    <li key={field}>
+                      {field}: {error?.message?.toString()}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            
             <Button 
               type="submit" 
-              className="bg-[#1E3A8A] text-white font-[Inter] font-medium py-2 px-6 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+              className="bg-[#1E3A8A] text-white font-[Inter] font-medium py-4 px-8 text-lg rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors w-full md:w-auto"
               disabled={updateContentMutation.isPending}
             >
-              {updateContentMutation.isPending ? "Saving..." : "Save Content"}
+              {updateContentMutation.isPending ? "Enregistrement..." : "Enregistrer le contenu"}
             </Button>
           </form>
         </Form>
