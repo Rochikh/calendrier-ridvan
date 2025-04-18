@@ -527,6 +527,20 @@ export default function AdminContentForm({ totalDays, initialDay = 1 }: AdminCon
     console.log("CREATING DAY 6 CONTENT DIRECTLY");
     
     try {
+      // Récupérer l'URL de l'image uploadée
+      const imageUrl = form.getValues("imageUrl");
+      
+      if (!imageUrl || imageUrl.trim() === "") {
+        toast({
+          title: "Image manquante",
+          description: "Veuillez d'abord uploader une image en utilisant le bouton 'Upload Image'",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      console.log("Using image URL:", imageUrl);
+      
       const response = await fetch(`/api/content/6`, {
         method: 'PUT',
         headers: {
@@ -536,7 +550,7 @@ export default function AdminContentForm({ totalDays, initialDay = 1 }: AdminCon
           title: "Test image day 6",
           type: "image",
           content: {
-            imageUrl: form.getValues("imageUrl") || "http://default-image-url.com",
+            imageUrl: imageUrl,
             imageCaption: "Test image caption"
           }
         }),
@@ -561,7 +575,7 @@ export default function AdminContentForm({ totalDays, initialDay = 1 }: AdminCon
       
       toast({
         title: "Contenu jour 6 créé",
-        description: "Le contenu pour le jour 6 a été créé avec succès",
+        description: "Le contenu pour le jour 6 a été créé avec succès avec l'image uploadée",
       });
       
       // Reload content
