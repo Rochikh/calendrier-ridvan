@@ -10,7 +10,6 @@ import {
   TableRow
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Edit, Eye } from "lucide-react";
 import ContentModal from "./ContentModal";
 
@@ -73,47 +72,37 @@ export default function AdminContentTable({ totalDays, onEditContent }: AdminCon
     if (!content.content) return "Contenu vide";
     
     try {
+      const contentObj = content.content as any;
+      
       switch (content.type) {
-        case "text": {
-          const contentObj = content.content as any;
-          return contentObj && contentObj.text 
+        case "text": 
+          return contentObj.text 
             ? `${String(contentObj.text).substring(0, 50)}${String(contentObj.text).length > 50 ? '...' : ''}`
             : "Texte non disponible";
-        }
-        case "image": {
-          const contentObj = content.content as any;
-          return contentObj && contentObj.imageUrl
+        case "image":
+          return contentObj.imageUrl
             ? (contentObj.imageCaption 
                 ? `${String(contentObj.imageCaption).substring(0, 50)}${String(contentObj.imageCaption).length > 50 ? '...' : ''}`
                 : "Image sans légende") 
             : "Image non disponible";
-        }
-        case "video": {
-          const contentObj = content.content as any;
-          return contentObj && contentObj.videoUrl
+        case "video":
+          return contentObj.videoUrl
             ? "Vidéo disponible" 
             : "Vidéo non disponible";
-        }
-        case "audio": {
-          const contentObj = content.content as any;
-          return contentObj && contentObj.audioUrl
+        case "audio":
+          return contentObj.audioUrl
             ? "Audio disponible" 
             : "Audio non disponible";
-        }
-        case "citation": {
-          const contentObj = content.content as any;
-          return contentObj && contentObj.citationText
+        case "citation":
+          return contentObj.citationText
             ? `${String(contentObj.citationText).substring(0, 50)}${String(contentObj.citationText).length > 50 ? '...' : ''}` 
             : "Citation non disponible";
-        }
-        case "link": {
-          const contentObj = content.content as any;
-          return contentObj && contentObj.linkUrl
+        case "link":
+          return contentObj.linkUrl
             ? (contentObj.linkDescription 
                 ? `${String(contentObj.linkDescription).substring(0, 50)}${String(contentObj.linkDescription).length > 50 ? '...' : ''}`
                 : String(contentObj.linkUrl)) 
             : "Lien non disponible";
-        }
         default:
           return "Type de contenu inconnu";
       }
@@ -131,7 +120,7 @@ export default function AdminContentTable({ totalDays, onEditContent }: AdminCon
 
   // Generate empty rows for days without content
   const emptyDays = Array.from({ length: totalDays }, (_, i) => i + 1)
-    .filter(day => !contentList?.some(item => item.day === day));
+    .filter(day => !contentList?.some((item) => item.day === day));
 
   if (isLoading) {
     return <div className="p-4">Chargement du contenu...</div>;
@@ -159,9 +148,9 @@ export default function AdminContentTable({ totalDays, onEditContent }: AdminCon
                 <TableCell className="font-medium">{content.day}</TableCell>
                 <TableCell>{content.title}</TableCell>
                 <TableCell>
-                  <Badge className={`${getTypeColor(content.type as ContentType)}`}>
+                  <div className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${getTypeColor(content.type as ContentType)}`}>
                     {getTypeDisplayName(content.type as ContentType)}
-                  </Badge>
+                  </div>
                 </TableCell>
                 <TableCell className="max-w-[300px] truncate">
                   {getContentSummary(content)}
