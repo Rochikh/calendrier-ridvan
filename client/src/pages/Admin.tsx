@@ -14,14 +14,8 @@ export default function Admin() {
   const { toast } = useToast();
   const { logout } = useAuth();
   const [selectedDay, setSelectedDay] = useState<number>(1);
-  // Par défaut, on montre directement l'onglet "settings" pour permettre à l'utilisateur d'y accéder
+  // Par défaut, on affiche l'onglet des paramètres
   const [activeTab, setActiveTab] = useState<string>("settings");
-
-  // Fetch settings
-  // Fetch auth status
-  const { data: authStatus, isLoading: isLoadingAuth } = useQuery<{ isLoggedIn: boolean }>({
-    queryKey: ["/api/auth/status"],
-  });
 
   // Fetch settings
   const { data: settings, isLoading: isLoadingSettings } = useQuery<Settings>({
@@ -32,41 +26,41 @@ export default function Admin() {
   const handleLogout = async () => {
     try {
       await logout();
-      navigate("/");
+      // Redirection directe avec window.location pour forcer un rafraîchissement complet
+      window.location.href = "/";
     } catch (error) {
       console.error("Logout error:", error);
+      toast({
+        title: "Erreur",
+        description: "Erreur lors de la déconnexion",
+        variant: "destructive",
+      });
     }
   };
 
   // Handle selecting a day for editing
   const handleEditContent = (day: number) => {
     setSelectedDay(day);
-    // Faire défiler jusqu'au formulaire
-    document.getElementById("content-form")?.scrollIntoView({ 
-      behavior: "smooth", 
-      block: "start" 
-    });
+    setActiveTab("content");
+    // Faire défiler jusqu'au formulaire après un court délai
+    setTimeout(() => {
+      document.getElementById("content-form")?.scrollIntoView({ 
+        behavior: "smooth", 
+        block: "start" 
+      });
+    }, 100);
   };
 
   // Loading state
-  if (isLoadingSettings || isLoadingAuth) {
-    return <div className="min-h-screen bg-gray-100 flex items-center justify-center">Loading...</div>;
-  }
-
-  // Check if user is logged in
-  if (!authStatus?.isLoggedIn) {
-    // Redirect to login page
-    toast({
-      title: "Accès refusé",
-      description: "Vous devez vous connecter pour accéder à cette page",
-      variant: "destructive",
-    });
-    
-    setTimeout(() => {
-      window.location.href = "/login";
-    }, 500);
-    
-    return <div className="min-h-screen bg-gray-100 flex items-center justify-center">Redirection vers la page de connexion...</div>;
+  if (isLoadingSettings) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-[#1E3A8A] mx-auto mb-4"></div>
+          <p className="text-gray-600">Chargement en cours...</p>
+        </div>
+      </div>
+    );
   }
 
   return (

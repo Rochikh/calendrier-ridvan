@@ -43,24 +43,17 @@ export default function Login() {
     setIsLoading(true);
     
     try {
-      await login(data.password);
-      // Afficher un message de réussite
-      toast({
-        title: "Connexion réussie",
-        description: "Vous êtes maintenant connecté en tant qu'administrateur",
-        variant: "default",
-      });
-      // Ajouter un court délai avant la redirection
-      setTimeout(() => {
-        window.location.href = "/admin";
-      }, 500);
+      const success = await login(data.password);
+      
+      if (success) {
+        // Le toast est déjà dans la fonction login du AuthContext
+        // La redirection se fait via le useEffect qui surveille isLoggedIn
+        console.log("Login successful, redirecting...");
+      } else {
+        throw new Error("Échec de la connexion");
+      }
     } catch (error) {
       console.error("Login error:", error);
-      toast({
-        title: "Erreur de connexion",
-        description: "Mot de passe incorrect",
-        variant: "destructive",
-      });
     } finally {
       setIsLoading(false);
     }
