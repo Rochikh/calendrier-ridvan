@@ -521,10 +521,78 @@ export default function AdminContentForm({ totalDays, initialDay = 1 }: AdminCon
     }
   }, [form.watch("imageUrl"), contentType, form]);
   
+  // Fonction directe pour créer le contenu pour le jour 6
+  const createDay6Content = async () => {
+    console.log("====================================================");
+    console.log("CREATING DAY 6 CONTENT DIRECTLY");
+    
+    try {
+      const response = await fetch(`/api/content/6`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: "Test image day 6",
+          type: "image",
+          content: {
+            imageUrl: form.getValues("imageUrl") || "http://default-image-url.com",
+            imageCaption: "Test image caption"
+          }
+        }),
+        credentials: 'include'
+      });
+      
+      console.log("CREATE DAY 6 RESPONSE:", response.status);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`Error ${response.status}: ${errorText}`);
+        toast({
+          title: "Échec de la création",
+          description: `Erreur ${response.status}: ${errorText}`,
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      const result = await response.json();
+      console.log("SUCCESS: Day 6 content created:", result);
+      
+      toast({
+        title: "Contenu jour 6 créé",
+        description: "Le contenu pour le jour 6 a été créé avec succès",
+      });
+      
+      // Reload content
+      queryClient.invalidateQueries({ queryKey: ["/api/content", 6] });
+      queryClient.invalidateQueries({ queryKey: ["/api/content"] });
+    } catch (error) {
+      console.error("CREATE DAY 6 ERROR:", error);
+      toast({
+        title: "Erreur",
+        description: "Une erreur inattendue s'est produite",
+        variant: "destructive"
+      });
+    }
+  };
+
   return (
     <Card>
       <CardContent className="p-6">
         <h2 className="text-xl font-[Cinzel] text-[#1E3A8A] mb-6">Content Management</h2>
+        
+        {/* SPECIAL BUTTON FOR DAY 6 */}
+        <div className="mb-4 bg-yellow-100 p-4 rounded-lg">
+          <h3 className="font-bold mb-2">Créer le contenu pour le jour 6</h3>
+          <p className="mb-3">Ce bouton va créer directement le contenu pour le jour 6 avec une image</p>
+          <Button 
+            onClick={createDay6Content}
+            className="bg-blue-600 hover:bg-blue-700"
+          >
+            Créer contenu jour 6
+          </Button>
+        </div>
         
         {/* Day Selector */}
         <div className="mb-6">
