@@ -9,6 +9,41 @@ interface ContentModalProps {
 }
 
 export default function ContentModal({ isOpen, onClose, content, titleColor }: ContentModalProps) {
+  // Fonction pour convertir une URL YouTube standard en URL d'intégration
+  const getYouTubeEmbedUrl = (url: string): string => {
+    // Cas 1: https://www.youtube.com/watch?v=VIDEO_ID
+    // Cas 2: https://youtu.be/VIDEO_ID
+    // Cas 3: https://www.youtube.com/embed/VIDEO_ID (déjà au format d'intégration)
+    
+    if (!url) return "";
+    
+    let videoId = "";
+    
+    try {
+      if (url.includes("youtube.com/watch")) {
+        // Extraire l'ID de la vidéo de l'URL YouTube standard
+        const urlParams = new URL(url).searchParams;
+        videoId = urlParams.get("v") || "";
+      } else if (url.includes("youtu.be/")) {
+        // Extraire l'ID de la vidéo d'une URL youtu.be/
+        const parts = url.split("youtu.be/");
+        videoId = parts[1] ? parts[1].split("?")[0] : "";
+      } else if (url.includes("youtube.com/embed/")) {
+        // Déjà au format d'intégration, on le renvoie tel quel
+        return url;
+      } else {
+        // Format non reconnu, renvoyer une URL vide
+        console.error("Format d'URL YouTube non reconnu:", url);
+        return "";
+      }
+      
+      // Construire l'URL d'intégration
+      return `https://www.youtube.com/embed/${videoId}`;
+    } catch (error) {
+      console.error("Erreur lors de la conversion de l'URL YouTube:", error);
+      return "";
+    }
+  };
   if (!isOpen) return null;
 
   console.log("Rendering modal with content:", content);
@@ -69,14 +104,23 @@ export default function ContentModal({ isOpen, onClose, content, titleColor }: C
         return (
           <div className="content-video">
             <h3 className="text-xl font-[Lora] font-semibold mb-3">{content.title}</h3>
-            <div className="bg-gray-100 p-4 rounded-lg">
-              <p className="font-[Lora] text-blue-600 break-all">
-                <a href={data.videoUrl} target="_blank" rel="noopener noreferrer">
-                  {data.videoUrl}
-                </a>
-                <span className="block mt-2 text-gray-600 text-sm">(Click to open video in a new tab)</span>
-              </p>
+            <div className="relative aspect-video w-full overflow-hidden rounded-lg shadow-md mb-4">
+              {data.videoUrl && (
+                <iframe
+                  src={getYouTubeEmbedUrl(data.videoUrl)}
+                  className="absolute inset-0 w-full h-full"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  title={content.title}
+                  loading="lazy"
+                ></iframe>
+              )}
             </div>
+            <p className="text-sm text-gray-500 mt-2">
+              <a href={data.videoUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                Voir la vidéo sur YouTube
+              </a>
+            </p>
           </div>
         );
 
@@ -84,14 +128,22 @@ export default function ContentModal({ isOpen, onClose, content, titleColor }: C
         return (
           <div className="content-audio">
             <h3 className="text-xl font-[Lora] font-semibold mb-3">{content.title}</h3>
-            <div className="bg-gray-100 p-4 rounded-lg">
-              <p className="font-[Lora] text-blue-600 break-all">
-                <a href={data.audioUrl} target="_blank" rel="noopener noreferrer">
-                  {data.audioUrl}
-                </a>
-                <span className="block mt-2 text-gray-600 text-sm">(Click to open audio in a new tab)</span>
-              </p>
-            </div>
+            {data.audioUrl && (
+              <div className="bg-gray-100 p-4 rounded-lg">
+                <audio 
+                  className="w-full" 
+                  controls 
+                  src={data.audioUrl}
+                >
+                  Votre navigateur ne supporte pas l'élément audio.
+                </audio>
+                <p className="text-sm text-gray-600 mt-2">
+                  <a href={data.audioUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                    Télécharger l'audio
+                  </a>
+                </p>
+              </div>
+            )}
           </div>
         );
 
