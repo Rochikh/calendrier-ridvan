@@ -6,9 +6,9 @@ import NotFound from "@/pages/not-found";
 import Home from "@/pages/Home";
 import Login from "@/pages/Login";
 import Admin from "@/pages/Admin";
+import AdminSettings from "@/pages/AdminSettings";
 import { useEffect } from "react";
 import { AuthProvider } from "./contexts/AuthContext";
-import { ProtectedRoute } from "@/components/ProtectedRoute";
 
 function RouterWithPathnameUpdater() {
   const [location, setLocation] = useLocation();
@@ -31,6 +31,7 @@ function RouterWithPathnameUpdater() {
       <Route path="/" component={Home} />
       <Route path="/login" component={Login} />
       <Route path="/admin" component={Admin} />
+      <Route path="/admin/settings" component={AdminSettings} />
       {/* Fallback to 404 */}
       <Route component={NotFound} />
     </Switch>

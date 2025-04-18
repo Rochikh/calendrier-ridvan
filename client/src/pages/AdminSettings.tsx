@@ -4,14 +4,12 @@ import { useQuery } from "@tanstack/react-query";
 import { Settings } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import AdminContentForm from "@/components/AdminContentForm";
-import AdminContentTable from "@/components/AdminContentTable";
+import AdminSettingsForm from "@/components/AdminSettingsForm";
 
-export default function Admin() {
+export default function AdminSettings() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const { logout, isLoggedIn, isLoading: isAuthLoading } = useAuth();
-  const [selectedDay, setSelectedDay] = useState<number>(1);
 
   // Fetch settings
   const { data: settings, isLoading: isLoadingSettings } = useQuery<Settings>({
@@ -22,7 +20,6 @@ export default function Admin() {
   const handleLogout = async () => {
     try {
       await logout();
-      // Redirection directe avec window.location pour forcer un rafraîchissement complet
       window.location.href = "/";
     } catch (error) {
       console.error("Logout error:", error);
@@ -32,18 +29,6 @@ export default function Admin() {
         variant: "destructive",
       });
     }
-  };
-
-  // Handle selecting a day for editing
-  const handleEditContent = (day: number) => {
-    setSelectedDay(day);
-    // Faire défiler jusqu'au formulaire après un court délai
-    setTimeout(() => {
-      document.getElementById("content-form")?.scrollIntoView({ 
-        behavior: "smooth", 
-        block: "start" 
-      });
-    }, 100);
   };
 
   // Loading state
@@ -69,9 +54,9 @@ export default function Admin() {
       <div className="bg-white shadow-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row justify-between items-center py-4 gap-4">
-            <h1 className="text-xl sm:text-2xl font-[Cinzel] text-[#1E3A8A] text-center sm:text-left">Gestion de Contenu</h1>
+            <h1 className="text-xl sm:text-2xl font-[Cinzel] text-[#1E3A8A] text-center sm:text-left">Paramètres du Calendrier Riḍván</h1>
             <div className="flex items-center space-x-4">
-              <a href="/admin/settings" className="text-gray-600 hover:text-[#1E3A8A] transition-colors font-[Inter]">Paramètres</a>
+              <a href="/admin" className="text-gray-600 hover:text-[#1E3A8A] transition-colors font-[Inter]">Gestion de Contenu</a>
               <a href="/" className="text-gray-600 hover:text-[#1E3A8A] transition-colors font-[Inter]">Voir Calendrier</a>
               <button 
                 className="bg-red-600 text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg hover:bg-red-700 transition-colors font-[Inter] text-sm sm:text-base"
@@ -85,23 +70,10 @@ export default function Admin() {
       </div>
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
-        <div className="grid grid-cols-1 gap-4 sm:gap-8">
-          {/* Content Table */}
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-[Cinzel] text-[#1E3A8A] mb-6">Liste des Contenus</h2>
-            <AdminContentTable 
-              totalDays={settings?.totalDays || 19} 
-              onEditContent={handleEditContent}
-            />
-          </div>
-          
-          {/* Content Management Form */}
-          <div id="content-form" className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-[Cinzel] text-[#1E3A8A] mb-6">Modifier le Contenu - Jour {selectedDay}</h2>
-            <AdminContentForm 
-              totalDays={settings?.totalDays || 19} 
-              initialDay={selectedDay}
-            />
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <h2 className="text-xl font-[Cinzel] text-[#1E3A8A] mb-6">Paramètres Visuels</h2>
+          <div className="mx-auto w-full sm:max-w-2xl">
+            <AdminSettingsForm settings={settings} />
           </div>
         </div>
       </div>
