@@ -8,6 +8,9 @@ import connectPgSimple from "connect-pg-simple";
 import { pool } from "./db";
 import { z } from "zod";
 import { ZodError } from "zod";
+import { upload, handleFileUpload } from "./upload";
+import path from "path";
+import express from "express";
 
 // Extend express-session declarations to include token
 declare module 'express-session' {
@@ -233,6 +236,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Route pour l'upload de fichiers
+  app.post("/api/upload", requireAuth, upload.single("file"), handleFileUpload);
+  
+  // Servir les fichiers téléchargés statiquement
+  app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
+  
   // Initialize database on startup
   await initializeDatabase();
   
