@@ -76,6 +76,4 @@ async function testDatabaseConnection() {
 // Appeler le test de connexion
 testDatabaseConnection().catch(console.error);
 
-import { sqlLogger } from './db-logger';
-
-export const db = drizzle({ client: pool, schema }, { logger: sqlLogger });
+export const db = drizzle(pool, { schema, logger: sqlLogger });

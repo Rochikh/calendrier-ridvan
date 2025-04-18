@@ -8,6 +8,9 @@ import connectPgSimple from "connect-pg-simple";
 import { pool } from "./db";
 import { z } from "zod";
 import { ZodError } from "zod";
+import cors from "cors";
+import cookieParser from "cookie-parser";
+import express from "express";
 
 // Extend express-session declarations to include token
 declare module 'express-session' {
@@ -314,16 +317,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Diagnostic route to check storage type
-  app.get("/api/diagnostic", (req, res) => {
+  // Diagnostic route to check database connection and permissions
+  app.get("/api/diagnostic", async (req, res) => {
     const isDevelopment = process.env.NODE_ENV === 'development';
-    const storageType = isDevelopment ? 'PostgreSQL' : 'File';
-    return res.status(200).json({
+    const diagnosticInfo: any = {
       environment: process.env.NODE_ENV || 'production',
-      storageType,
+      storageType: 'PostgreSQL',
       workingDirectory: process.cwd(),
-      timestamp: new Date().toISOString()
-    });
+      timestamp: new Date().toISOString(),
+      database: {
+        connected: false,
+        version: null,
+        canWrite: false,
+        lastError: null
+      }
+    };
+    
+    // Tester la connexion à la base de données
+    try {
+      const client = await pool.connect();
+      try {
+        // Vérifier la connexion
+        const res = await client.query('SELECT version(), current_user, current_database()');
+        diagnosticInfo.database.connected = true;
+        diagnosticInfo.database.version = res.rows[0].version;
+        diagnosticInfo.database.user = res.rows[0].current_user;
+        diagnosticInfo.database.name = res.rows[0].current_database;
+        
+        // Tester les permissions d'écriture
+        try {
+          await client.query(`
+            CREATE TEMPORARY TABLE IF NOT EXISTS perm_test (id serial, test text);
+            INSERT INTO perm_test (test) VALUES ('Diagnostic test');
+            SELECT * FROM perm_test;
+            DROP TABLE IF EXISTS perm_test;
+          `);
+          diagnosticInfo.database.canWrite = true;
+        } catch (writeErr: any) {
+          diagnosticInfo.database.canWrite = false;
+          diagnosticInfo.database.lastError = {
+            message: writeErr.message,
+            code: writeErr.code,
+            detail: writeErr.detail
+          };
+        }
+      } finally {
+        client.release();
+      }
+    } catch (err: any) {
+      diagnosticInfo.database.lastError = {
+        message: err.message,
+        code: err.code,
+        detail: err.detail
+      };
+    }
+    
+    return res.status(200).json(diagnosticInfo);
   });
 
   // Initialize database on startup
