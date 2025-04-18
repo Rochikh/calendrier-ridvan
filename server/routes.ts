@@ -2,7 +2,8 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { randomBytes } from "crypto";
-import { contentDataSchema, contentTypeSchema, insertContentSchema, insertSettingsSchema } from "@shared/schema";
+import { contentDataSchema, contentTypeSchema, insertContentSchema, insertSettingsSchema, content } from "@shared/schema";
+import { db } from "./db";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
 import { pool } from "./db";
@@ -206,7 +207,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid day parameter. Must be between 1 and 30." });
       }
       
+      console.log(`Processing PUT request for content day ${day}`);
+      
       const { title, type, content: contentData } = req.body;
+      console.log("Request body:", JSON.stringify(req.body, null, 2));
       
       // Validate content type
       const validatedType = contentTypeSchema.parse(type);
@@ -220,7 +224,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Type:", validatedType);
       console.log("Content data:", JSON.stringify(contentData, null, 2));
       
-      // Update content
+      // Vérifier si le contenu existe déjà pour ce jour
+      let existingContent = await storage.getContent(day);
+      
+      if (!existingContent) {
+        console.log(`No existing content for day ${day}. Creating a new entry.`);
+        
+        // Créer un nouvel enregistrement directement avec la requête SQL
+        const now = new Date().toISOString();
+        
+        const [newContent] = await db
+          .insert(content)
+          .values({
+            day,
+            title: title || `Day ${day}`,
+            type: validatedType,
+            content: contentData,
+            updatedAt: now
+          })
+          .returning();
+          
+        console.log("Created new content:", JSON.stringify(newContent, null, 2));
+        return res.status(201).json(newContent);
+      }
+      
+      // Update content si existant
       const updatedContent = await storage.updateContent(day, {
         title,
         type: validatedType,
