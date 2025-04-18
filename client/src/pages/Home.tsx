@@ -16,21 +16,37 @@ export default function Home() {
   });
 
   // Fetch content for selected day
-  const { data: content, isLoading: isLoadingContent } = useQuery<Content[]>({
-    queryKey: ["/api/content", currentDay],
+  const { data: content, isLoading: isLoadingContent, error: contentError } = useQuery<Content[]>({
+    queryKey: [`/api/content/${currentDay}`],
     enabled: !!currentDay,
+    retry: false, // Ne pas réessayer en cas d'erreur 404
+    staleTime: 0, // Toujours refétcher les données
+    throwOnError: false // Ne pas lancer d'exception pour les erreurs 404
   });
 
   // Update current content when content is loaded
   useEffect(() => {
+    console.log("Content query for day", currentDay, ":", { content, error: contentError, isLoading: isLoadingContent });
+    
+    if (contentError) {
+      console.log(`Error loading content for day ${currentDay}:`, contentError);
+      // Réinitialiser le contenu actuel en cas d'erreur (404)
+      setCurrentContent(null);
+      return;
+    }
+    
     if (content && content.length > 0) {
-      console.log("Content loaded for day", currentDay, ":", content);
+      console.log("Content successfully loaded for day", currentDay, ":", content);
       // Prendre le premier élément du tableau car getContent renvoie un tableau
-      const contentItem = content[0];
+      const contentItem = content[0]; 
       console.log("Using content item:", contentItem);
       setCurrentContent(contentItem);
+    } else {
+      // Pas de contenu trouvé
+      console.log(`No content found for day ${currentDay}`);
+      setCurrentContent(null);
     }
-  }, [content, currentDay]);
+  }, [content, contentError, isLoadingContent, currentDay]);
 
   // Handle star click
   const handleStarClick = (day: number) => {
@@ -139,13 +155,36 @@ export default function Home() {
       </div>
       
       {/* Content Modal */}
-      {currentContent && (
-        <ContentModal 
-          isOpen={isModalOpen} 
-          onClose={closeModal} 
-          content={currentContent} 
-          titleColor={titleColor}
-        />
+      {isModalOpen && (
+        currentContent ? (
+          <ContentModal 
+            isOpen={true}
+            onClose={closeModal} 
+            content={currentContent} 
+            titleColor={titleColor}
+          />
+        ) : (
+          <div 
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 backdrop-blur-sm"
+            onClick={closeModal}
+          >
+            <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 p-6 text-center">
+              <h2 
+                className="text-2xl font-[Cinzel] mb-4"
+                style={{ color: titleColor }}
+              >
+                Jour {currentDay}
+              </h2>
+              <p className="text-gray-700 my-8">Aucun contenu n'est disponible pour ce jour.</p>
+              <button 
+                className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                onClick={closeModal}
+              >
+                Fermer
+              </button>
+            </div>
+          </div>
+        )
       )}
 
       {/* Add twinkle animation */}
