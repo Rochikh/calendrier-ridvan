@@ -18,6 +18,12 @@ export default function Admin() {
   const [activeTab, setActiveTab] = useState<string>("settings");
 
   // Fetch settings
+  // Fetch auth status
+  const { data: authStatus, isLoading: isLoadingAuth } = useQuery<{ isLoggedIn: boolean }>({
+    queryKey: ["/api/auth/status"],
+  });
+
+  // Fetch settings
   const { data: settings, isLoading: isLoadingSettings } = useQuery<Settings>({
     queryKey: ["/api/settings"],
   });
@@ -42,8 +48,25 @@ export default function Admin() {
     });
   };
 
-  if (isLoadingSettings) {
+  // Loading state
+  if (isLoadingSettings || isLoadingAuth) {
     return <div className="min-h-screen bg-gray-100 flex items-center justify-center">Loading...</div>;
+  }
+
+  // Check if user is logged in
+  if (!authStatus?.isLoggedIn) {
+    // Redirect to login page
+    toast({
+      title: "Accès refusé",
+      description: "Vous devez vous connecter pour accéder à cette page",
+      variant: "destructive",
+    });
+    
+    setTimeout(() => {
+      window.location.href = "/login";
+    }, 500);
+    
+    return <div className="min-h-screen bg-gray-100 flex items-center justify-center">Redirection vers la page de connexion...</div>;
   }
 
   return (

@@ -30,7 +30,7 @@ function RouterWithPathnameUpdater() {
     <Switch>
       <Route path="/" component={Home} />
       <Route path="/login" component={Login} />
-      <ProtectedRoute path="/admin" component={Admin} />
+      <Route path="/admin" component={Admin} />
       {/* Fallback to 404 */}
       <Route component={NotFound} />
     </Switch>

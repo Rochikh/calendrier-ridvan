@@ -43,12 +43,24 @@ export default function Login() {
     setIsLoading(true);
     
     try {
-      const success = await login(data.password);
-      if (success) {
-        navigate("/admin");
-      }
+      await login(data.password);
+      // Afficher un message de réussite
+      toast({
+        title: "Connexion réussie",
+        description: "Vous êtes maintenant connecté en tant qu'administrateur",
+        variant: "default",
+      });
+      // Ajouter un court délai avant la redirection
+      setTimeout(() => {
+        window.location.href = "/admin";
+      }, 500);
     } catch (error) {
       console.error("Login error:", error);
+      toast({
+        title: "Erreur de connexion",
+        description: "Mot de passe incorrect",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
