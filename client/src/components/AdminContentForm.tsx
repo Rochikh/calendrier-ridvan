@@ -15,19 +15,26 @@ import {
   Button
 } from "@/components/ui";
 
+// Fonction d'aide pour valider les URLs
+const validateUrl = (url: string) => {
+  if (!url) return true;
+  // Accepter les URLs relatives ou absolues
+  return url.startsWith('/') || url.startsWith('http');
+};
+
 // Content form schema
 const formSchema = z.object({
   title: z.string().min(1, "Title is required"),
   type: contentTypeSchema,
   // Content fields - conditionally required based on type
   text: z.string().optional().or(z.literal("")),
-  imageUrl: z.string().url("URL invalide").optional().or(z.literal("")),
+  imageUrl: z.string().refine(validateUrl, "URL invalide").optional().or(z.literal("")),
   imageCaption: z.string().optional().or(z.literal("")),
-  videoUrl: z.string().url("URL invalide").optional().or(z.literal("")),
-  audioUrl: z.string().url("URL invalide").optional().or(z.literal("")),
+  videoUrl: z.string().refine(validateUrl, "URL invalide").optional().or(z.literal("")),
+  audioUrl: z.string().refine(validateUrl, "URL invalide").optional().or(z.literal("")),
   citationText: z.string().optional().or(z.literal("")),
   citationSource: z.string().optional().or(z.literal("")),
-  linkUrl: z.string().url("URL invalide").optional().or(z.literal("")),
+  linkUrl: z.string().refine(validateUrl, "URL invalide").optional().or(z.literal("")),
   linkDescription: z.string().optional().or(z.literal(""))
 }).superRefine((data, ctx) => {
   // Validate required fields based on type
@@ -295,7 +302,22 @@ export default function AdminContentForm({ totalDays, initialDay = 1 }: AdminCon
   // Handle form submission
   const onSubmit = (data: FormValues) => {
     console.log("Submitting form with data:", data);
+    console.log("Selected day:", selectedDay);
+    console.log("Form errors:", form.formState.errors);
+    console.log("Is form valid:", form.formState.isValid);
+    
     try {
+      // Assurons-nous que l'URL est valide pour éviter les problèmes de validation
+      if (data.type === "image" && data.imageUrl && !data.imageUrl.startsWith("http")) {
+        data.imageUrl = "http://" + data.imageUrl;
+        console.log("Fixed image URL:", data.imageUrl);
+      }
+      
+      if (data.type === "video" && data.videoUrl && !data.videoUrl.startsWith("http")) {
+        data.videoUrl = "http://" + data.videoUrl;
+        console.log("Fixed video URL:", data.videoUrl);
+      }
+      
       updateContentMutation.mutate(data);
       console.log("Mutation called successfully");
     } catch (error) {

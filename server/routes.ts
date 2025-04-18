@@ -214,6 +214,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Validate content data based on type
       contentDataSchema.parse(contentData);
       
+      // Ajout de logs détaillés pour déboguer
+      console.log("Content update request for day:", day);
+      console.log("Title:", title);
+      console.log("Type:", validatedType);
+      console.log("Content data:", JSON.stringify(contentData, null, 2));
+      
       // Update content
       const updatedContent = await storage.updateContent(day, {
         title,
@@ -221,6 +227,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         content: contentData
       });
       
+      console.log("Updated content:", JSON.stringify(updatedContent, null, 2));
       return res.status(200).json(updatedContent);
     } catch (error) {
       console.error(`Update content error for day ${req.params.day}:`, error);
