@@ -6,11 +6,14 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import AdminContentForm from "@/components/AdminContentForm";
 import AdminSettingsForm from "@/components/AdminSettingsForm";
+import AdminContentTable from "@/components/AdminContentTable";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function Admin() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const { logout } = useAuth();
+  const [selectedDay, setSelectedDay] = useState<number>(1);
 
   // Fetch settings
   const { data: settings, isLoading: isLoadingSettings } = useQuery<Settings>({
@@ -25,6 +28,16 @@ export default function Admin() {
     } catch (error) {
       console.error("Logout error:", error);
     }
+  };
+
+  // Handle selecting a day for editing
+  const handleEditContent = (day: number) => {
+    setSelectedDay(day);
+    // Faire défiler jusqu'au formulaire
+    document.getElementById("content-form")?.scrollIntoView({ 
+      behavior: "smooth", 
+      block: "start" 
+    });
   };
 
   if (isLoadingSettings) {
@@ -51,17 +64,37 @@ export default function Admin() {
       </div>
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Content Management Section */}
-          <div className="lg:col-span-2">
-            <AdminContentForm totalDays={settings?.totalDays || 19} />
-          </div>
+        <Tabs defaultValue="content" className="w-full mb-8">
+          <TabsList>
+            <TabsTrigger value="content">Contenu</TabsTrigger>
+            <TabsTrigger value="settings">Paramètres</TabsTrigger>
+          </TabsList>
           
-          {/* Settings Section */}
-          <div className="lg:col-span-1">
-            <AdminSettingsForm settings={settings} />
-          </div>
-        </div>
+          <TabsContent value="content">
+            <div className="grid grid-cols-1 gap-8">
+              {/* Content Table */}
+              <AdminContentTable 
+                totalDays={settings?.totalDays || 19} 
+                onEditContent={handleEditContent}
+              />
+              
+              {/* Content Management Form */}
+              <div id="content-form">
+                <AdminContentForm 
+                  totalDays={settings?.totalDays || 19} 
+                  initialDay={selectedDay}
+                />
+              </div>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="settings">
+            {/* Settings Form */}
+            <div className="max-w-2xl mx-auto">
+              <AdminSettingsForm settings={settings} />
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
