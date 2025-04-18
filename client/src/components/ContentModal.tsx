@@ -88,14 +88,14 @@ export default function ContentModal({ isOpen, onClose, content, titleColor }: C
       case "image":
         return (
           <div className="content-image">
-            <h3 className="text-xl font-[Lora] font-semibold mb-3">{content.title}</h3>
+            <h3 className="text-lg sm:text-xl font-[Lora] font-semibold mb-2 sm:mb-3">{content.title}</h3>
             <img 
               src={data.imageUrl} 
               alt={data.imageCaption || content.title} 
-              className="w-full rounded-lg shadow-md mb-4 max-h-96 object-cover"
+              className="w-full rounded-lg shadow-md mb-3 max-h-[50vh] object-contain mx-auto"
             />
             {data.imageCaption && (
-              <p className="font-[Lora] text-gray-700">{data.imageCaption}</p>
+              <p className="font-[Lora] text-gray-700 text-sm sm:text-base">{data.imageCaption}</p>
             )}
           </div>
         );
@@ -103,8 +103,8 @@ export default function ContentModal({ isOpen, onClose, content, titleColor }: C
       case "video":
         return (
           <div className="content-video">
-            <h3 className="text-xl font-[Lora] font-semibold mb-3">{content.title}</h3>
-            <div className="relative aspect-video w-full overflow-hidden rounded-lg shadow-md mb-4">
+            <h3 className="text-lg sm:text-xl font-[Lora] font-semibold mb-2 sm:mb-3">{content.title}</h3>
+            <div className="relative aspect-video w-full overflow-hidden rounded-lg shadow-md mb-3">
               {data.videoUrl && (
                 <iframe
                   src={getYouTubeEmbedUrl(data.videoUrl)}
@@ -116,7 +116,7 @@ export default function ContentModal({ isOpen, onClose, content, titleColor }: C
                 ></iframe>
               )}
             </div>
-            <p className="text-sm text-gray-500 mt-2">
+            <p className="text-xs sm:text-sm text-gray-500 mt-2">
               <a href={data.videoUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
                 Voir la vidéo sur YouTube
               </a>
@@ -127,17 +127,18 @@ export default function ContentModal({ isOpen, onClose, content, titleColor }: C
       case "audio":
         return (
           <div className="content-audio">
-            <h3 className="text-xl font-[Lora] font-semibold mb-3">{content.title}</h3>
+            <h3 className="text-lg sm:text-xl font-[Lora] font-semibold mb-2 sm:mb-3">{content.title}</h3>
             {data.audioUrl && (
-              <div className="bg-gray-100 p-4 rounded-lg">
+              <div className="bg-gray-100 p-3 sm:p-4 rounded-lg">
                 <audio 
                   className="w-full" 
                   controls 
                   src={data.audioUrl}
+                  preload="metadata"
                 >
                   Votre navigateur ne supporte pas l'élément audio.
                 </audio>
-                <p className="text-sm text-gray-600 mt-2">
+                <p className="text-xs sm:text-sm text-gray-600 mt-2">
                   <a href={data.audioUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
                     Télécharger l'audio
                   </a>
@@ -184,30 +185,31 @@ export default function ContentModal({ isOpen, onClose, content, titleColor }: C
 
   return (
     <div 
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 backdrop-blur-sm overflow-y-auto py-4 px-2"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-auto">
+      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-auto max-h-[90vh] overflow-auto my-auto">
         {/* Modal Header */}
-        <div className="flex justify-between items-center p-4 border-b border-gray-200">
+        <div className="flex justify-between items-center p-3 sm:p-4 border-b border-gray-200 sticky top-0 bg-white z-10">
           <h2 
-            className="text-2xl font-[Cinzel]"
+            className="text-xl sm:text-2xl font-[Cinzel]"
             style={{ color: titleColor }}
           >
-            Day {content.day}
+            Jour {content.day}
           </h2>
           <button 
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+            className="p-1.5 sm:p-2 hover:bg-gray-100 rounded-full transition-colors"
             onClick={onClose}
+            aria-label="Fermer"
           >
-            <X className="h-6 w-6 text-gray-600" />
+            <X className="h-5 w-5 sm:h-6 sm:w-6 text-gray-600" />
           </button>
         </div>
         
         {/* Modal Content */}
-        <div className="p-6">
+        <div className="p-4 sm:p-6">
           {renderContent()}
         </div>
       </div>

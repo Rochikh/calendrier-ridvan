@@ -171,10 +171,10 @@ export default function AdminContentTable({ totalDays, onEditContent }: AdminCon
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-16">Jour</TableHead>
-              <TableHead>Titre</TableHead>
-              <TableHead className="w-24">Type</TableHead>
-              <TableHead>Aperçu</TableHead>
+              <TableHead className="w-14">Jour</TableHead>
+              <TableHead className="hidden md:table-cell">Titre</TableHead>
+              <TableHead className="hidden sm:table-cell w-20">Type</TableHead>
+              <TableHead className="hidden sm:table-cell">Aperçu</TableHead>
               <TableHead className="w-24 text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -183,41 +183,44 @@ export default function AdminContentTable({ totalDays, onEditContent }: AdminCon
             {contentList?.sort((a, b) => a.day - b.day).map((content) => (
               <TableRow key={content.id}>
                 <TableCell className="font-medium">{content.day}</TableCell>
-                <TableCell>{content.title}</TableCell>
-                <TableCell>
+                <TableCell className="hidden md:table-cell">{content.title}</TableCell>
+                <TableCell className="hidden sm:table-cell">
                   <div className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${getTypeColor(content.type as ContentType)}`}>
                     {getTypeDisplayName(content.type as ContentType)}
                   </div>
                 </TableCell>
-                <TableCell className="max-w-[300px] truncate">
+                <TableCell className="hidden sm:table-cell max-w-[300px] truncate">
                   {getContentSummary(content)}
                 </TableCell>
                 <TableCell className="text-right">
-                  <div className="flex justify-end space-x-2">
+                  <div className="flex justify-end space-x-1 md:space-x-2">
                     <Button 
                       variant="outline" 
                       size="sm" 
-                      className="text-gray-500 hover:text-[#1E3A8A]"
+                      className="text-gray-500 hover:text-[#1E3A8A] p-1 md:p-2"
                       onClick={() => handlePreview(content)}
+                      title="Aperçu"
                     >
                       <Eye className="h-4 w-4" />
                     </Button>
                     <Button 
                       variant="outline" 
                       size="sm" 
-                      className="text-gray-500 hover:text-[#1E3A8A]"
+                      className="text-gray-500 hover:text-[#1E3A8A] p-1 md:p-2"
                       onClick={() => onEditContent(content.day)}
+                      title="Modifier"
                     >
                       <Edit className="h-4 w-4" />
                     </Button>
                     <Button 
                       variant="outline" 
                       size="sm" 
-                      className="text-gray-500 hover:text-red-600"
+                      className="text-gray-500 hover:text-red-600 p-1 md:p-2"
                       onClick={() => {
                         setContentToDelete(content);
                         setDeleteDialogOpen(true);
                       }}
+                      title="Supprimer"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -230,15 +233,16 @@ export default function AdminContentTable({ totalDays, onEditContent }: AdminCon
             {emptyDays.map(day => (
               <TableRow key={`empty-${day}`}>
                 <TableCell className="font-medium">{day}</TableCell>
-                <TableCell colSpan={3} className="text-gray-500 italic">
+                <TableCell colSpan={3} className="hidden sm:table-cell text-gray-500 italic">
                   Aucun contenu pour ce jour
                 </TableCell>
                 <TableCell className="text-right">
                   <Button 
                     variant="outline" 
                     size="sm" 
-                    className="text-gray-500 hover:text-[#1E3A8A]"
+                    className="text-gray-500 hover:text-[#1E3A8A] p-1 md:p-2"
                     onClick={() => onEditContent(day)}
+                    title="Ajouter"
                   >
                     <Edit className="h-4 w-4" />
                   </Button>

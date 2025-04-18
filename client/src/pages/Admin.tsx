@@ -48,30 +48,30 @@ export default function Admin() {
     <div className="min-h-screen bg-gray-100">
       <div className="bg-white shadow-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <h1 className="text-2xl font-[Cinzel] text-[#1E3A8A]">Riḍván Calendar Admin</h1>
+          <div className="flex flex-col sm:flex-row justify-between items-center py-4 gap-4">
+            <h1 className="text-xl sm:text-2xl font-[Cinzel] text-[#1E3A8A] text-center sm:text-left">Riḍván Calendar Admin</h1>
             <div className="flex items-center space-x-4">
-              <a href="/" className="text-gray-600 hover:text-[#1E3A8A] transition-colors font-[Inter]">View Calendar</a>
+              <a href="/" className="text-gray-600 hover:text-[#1E3A8A] transition-colors font-[Inter]">Voir Calendrier</a>
               <button 
-                className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors font-[Inter]"
+                className="bg-red-600 text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg hover:bg-red-700 transition-colors font-[Inter] text-sm sm:text-base"
                 onClick={handleLogout}
               >
-                Logout
+                Déconnexion
               </button>
             </div>
           </div>
         </div>
       </div>
       
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Tabs defaultValue="content" className="w-full mb-8">
-          <TabsList>
-            <TabsTrigger value="content">Contenu</TabsTrigger>
-            <TabsTrigger value="settings">Paramètres</TabsTrigger>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
+        <Tabs defaultValue="content" className="w-full mb-4 sm:mb-8">
+          <TabsList className="w-full sm:w-auto">
+            <TabsTrigger value="content" className="flex-1 sm:flex-initial">Contenu</TabsTrigger>
+            <TabsTrigger value="settings" className="flex-1 sm:flex-initial">Paramètres</TabsTrigger>
           </TabsList>
           
           <TabsContent value="content">
-            <div className="grid grid-cols-1 gap-8">
+            <div className="grid grid-cols-1 gap-4 sm:gap-8">
               {/* Content Table */}
               <AdminContentTable 
                 totalDays={settings?.totalDays || 19} 
@@ -90,7 +90,7 @@ export default function Admin() {
           
           <TabsContent value="settings">
             {/* Settings Form */}
-            <div className="max-w-2xl mx-auto">
+            <div className="mx-auto w-full sm:max-w-2xl">
               <AdminSettingsForm settings={settings} />
             </div>
           </TabsContent>
