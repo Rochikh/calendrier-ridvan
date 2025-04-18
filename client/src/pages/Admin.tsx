@@ -14,6 +14,7 @@ export default function Admin() {
   const { toast } = useToast();
   const { logout } = useAuth();
   const [selectedDay, setSelectedDay] = useState<number>(1);
+  const [activeTab, setActiveTab] = useState<string>("content");
 
   // Fetch settings
   const { data: settings, isLoading: isLoadingSettings } = useQuery<Settings>({
@@ -64,7 +65,12 @@ export default function Admin() {
       </div>
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
-        <Tabs defaultValue="content" className="w-full mb-4 sm:mb-8">
+        <Tabs 
+          defaultValue="content" 
+          className="w-full mb-4 sm:mb-8"
+          value={activeTab}
+          onValueChange={setActiveTab}
+        >
           <TabsList className="w-full sm:w-auto">
             <TabsTrigger value="content" className="flex-1 sm:flex-initial">Contenu</TabsTrigger>
             <TabsTrigger value="settings" className="flex-1 sm:flex-initial">Paramètres</TabsTrigger>

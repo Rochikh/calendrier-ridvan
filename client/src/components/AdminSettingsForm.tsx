@@ -6,12 +6,10 @@ import { z } from "zod";
 import { Settings } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  Card, CardContent, 
-  Form, FormControl, FormField, FormItem, FormLabel, FormDescription,
-  Input,
-  Button
-} from "@/components/ui";
+import { Card, CardContent } from "@/components/ui/card";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormDescription } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 // Settings form schema
 const formSchema = z.object({
