@@ -237,6 +237,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ message: "Error updating content" });
     }
   });
+  
+  // Route pour supprimer un contenu
+  app.delete("/api/content/:day", requireAuth, async (req, res) => {
+    try {
+      const day = parseInt(req.params.day);
+      
+      if (isNaN(day) || day < 1 || day > 30) {
+        return res.status(400).json({ message: "Invalid day parameter. Must be between 1 and 30." });
+      }
+      
+      await storage.deleteContent(day);
+      
+      return res.status(200).json({ message: `Content for day ${day} deleted successfully` });
+    } catch (error) {
+      console.error(`Delete content error for day ${req.params.day}:`, error);
+      return res.status(500).json({ message: "Error deleting content" });
+    }
+  });
 
   // Initialize database on startup
   await initializeDatabase();

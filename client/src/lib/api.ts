@@ -28,6 +28,10 @@ export async function updateContent(day: number, content: Partial<Omit<Content, 
   return response.json();
 }
 
+export async function deleteContent(day: number): Promise<void> {
+  await apiRequest("DELETE", `/api/content/${day}`, undefined);
+}
+
 // Auth API
 export async function login(password: string): Promise<void> {
   await apiRequest("POST", "/api/login", { password });

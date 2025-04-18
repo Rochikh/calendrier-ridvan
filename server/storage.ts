@@ -23,6 +23,7 @@ export interface IStorage {
   getContent(day: number): Promise<Content | undefined>;
   getAllContent(): Promise<Content[]>;
   updateContent(day: number, contentData: Partial<InsertContent>): Promise<Content>;
+  deleteContent(day: number): Promise<void>;
   
   // Sessions
   createSession(session: InsertSession): Promise<Session>;
@@ -143,6 +144,25 @@ export class DatabaseStorage implements IStorage {
         })
         .returning();
       return newContent;
+    }
+  }
+  
+  async deleteContent(day: number): Promise<void> {
+    console.log(`Deleting content for day ${day}`);
+    
+    const [existingContent] = await db
+      .select()
+      .from(content)
+      .where(eq(content.day, day));
+    
+    if (existingContent) {
+      await db
+        .delete(content)
+        .where(eq(content.day, day));
+      
+      console.log(`Content for day ${day} deleted successfully`);
+    } else {
+      console.log(`No content found for day ${day}`);
     }
   }
   

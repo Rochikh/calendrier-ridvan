@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Content, ContentType } from "@shared/schema";
 import {
   Table,
@@ -10,7 +10,19 @@ import {
   TableRow
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Edit, Eye } from "lucide-react";
+import { Edit, Eye, Trash2, AlertCircle } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { deleteContent } from "@/lib/api";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from "@/components/ui/alert-dialog";
 import ContentModal from "./ContentModal";
 
 interface AdminContentTableProps {
@@ -21,10 +33,35 @@ interface AdminContentTableProps {
 export default function AdminContentTable({ totalDays, onEditContent }: AdminContentTableProps) {
   const [previewContent, setPreviewContent] = useState<Content | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [contentToDelete, setContentToDelete] = useState<Content | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   // Fetch all content
   const { data: contentList, isLoading } = useQuery<Content[]>({
     queryKey: ["/api/content"],
+  });
+  
+  // Delete content mutation
+  const deleteMutation = useMutation({
+    mutationFn: (day: number) => deleteContent(day),
+    onSuccess: () => {
+      toast({
+        title: "Contenu supprimé",
+        description: "Le contenu a été supprimé avec succès",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/content"] });
+      setContentToDelete(null);
+      setDeleteDialogOpen(false);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erreur de suppression",
+        description: `Échec de la suppression du contenu: ${error.message}`,
+        variant: "destructive"
+      });
+    }
   });
 
   // Get type color for badge
@@ -173,6 +210,17 @@ export default function AdminContentTable({ totalDays, onEditContent }: AdminCon
                     >
                       <Edit className="h-4 w-4" />
                     </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="text-gray-500 hover:text-red-600"
+                      onClick={() => {
+                        setContentToDelete(content);
+                        setDeleteDialogOpen(true);
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
                 </TableCell>
               </TableRow>
@@ -210,6 +258,30 @@ export default function AdminContentTable({ totalDays, onEditContent }: AdminCon
           titleColor="#1E3A8A"
         />
       )}
+      
+      {/* Delete confirmation dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-red-500" />
+              Confirmer la suppression
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Êtes-vous sûr de vouloir supprimer le contenu du jour {contentToDelete?.day} ? Cette action ne peut pas être annulée.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => contentToDelete && deleteMutation.mutate(contentToDelete.day)}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {deleteMutation.isPending ? "Suppression..." : "Supprimer"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
