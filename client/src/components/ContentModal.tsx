@@ -78,8 +78,8 @@ export default function ContentModal({ isOpen, onClose, content, titleColor }: C
       case "text":
         return (
           <div className="content-text">
-            <h3 className="text-xl font-[Lora] font-semibold mb-3">{content.title}</h3>
-            <div className="font-[Lora] text-gray-700 space-y-4 whitespace-pre-line">
+            <h3 className="text-lg sm:text-xl font-[Lora] font-semibold mb-2 sm:mb-3">{content.title}</h3>
+            <div className="font-[Lora] text-gray-700 space-y-3 sm:space-y-4 whitespace-pre-line text-sm sm:text-base">
               {data.text}
             </div>
           </div>
@@ -151,11 +151,11 @@ export default function ContentModal({ isOpen, onClose, content, titleColor }: C
       case "citation":
         return (
           <div className="content-citation">
-            <h3 className="text-xl font-[Lora] font-semibold mb-3">{content.title}</h3>
-            <blockquote className={`border-l-4 pl-4 py-2 italic font-[Lora] text-gray-700`} style={{ borderColor: titleColor }}>
+            <h3 className="text-lg sm:text-xl font-[Lora] font-semibold mb-2 sm:mb-3">{content.title}</h3>
+            <blockquote className={`border-l-4 pl-3 sm:pl-4 py-2 italic font-[Lora] text-gray-700 text-sm sm:text-base`} style={{ borderColor: titleColor }}>
               {data.citationText}
               {data.citationSource && (
-                <footer className="text-gray-600 mt-2 not-italic">— {data.citationSource}</footer>
+                <footer className="text-gray-600 mt-2 not-italic text-xs sm:text-sm">— {data.citationSource}</footer>
               )}
             </blockquote>
           </div>
@@ -164,14 +164,14 @@ export default function ContentModal({ isOpen, onClose, content, titleColor }: C
       case "link":
         return (
           <div className="content-link">
-            <h3 className="text-xl font-[Lora] font-semibold mb-3">{content.title}</h3>
-            <div className="bg-gray-100 p-4 rounded-lg">
-              <p className="font-[Lora] text-blue-600 break-all">
+            <h3 className="text-lg sm:text-xl font-[Lora] font-semibold mb-2 sm:mb-3">{content.title}</h3>
+            <div className="bg-gray-100 p-3 sm:p-4 rounded-lg">
+              <p className="font-[Lora] text-blue-600 break-all text-sm sm:text-base">
                 <a href={data.linkUrl} target="_blank" rel="noopener noreferrer">
                   {data.linkUrl}
                 </a>
                 {data.linkDescription && (
-                  <span className="block mt-2 text-gray-600 text-sm">{data.linkDescription}</span>
+                  <span className="block mt-2 text-gray-600 text-xs sm:text-sm">{data.linkDescription}</span>
                 )}
               </p>
             </div>
