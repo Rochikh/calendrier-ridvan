@@ -19,9 +19,14 @@ declare module 'express-session' {
 // Fixed admin password
 const ADMIN_PASSWORD = "9999";
 
+// Importer script d'initialisation de la base de données
+import { createTables } from './db-init';
+
 // Initialize settings on startup
 const initializeDatabase = async () => {
   try {
+    // Créer les tables si elles n'existent pas
+    await createTables();
     // Initialize settings if they don't exist
     await storage.getSettings() || await storage.initializeSettings();
     console.log("Database initialized successfully");
