@@ -143,26 +143,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   app.put("/api/settings", requireAuth, async (req, res) => {
+    console.log("📥 PUT /api/settings - Received request with body:", req.body);
     try {
       const updatedSettings = req.body;
       
-      // Validate settings data
+      console.log("📋 Validating settings data:", updatedSettings);
       const validatedData = insertSettingsSchema.partial().parse(updatedSettings);
+      console.log("✅ Settings data validation passed");
       
-      const settings = await storage.updateSettings(validatedData);
-      
-      return res.status(200).json(settings);
-    } catch (error) {
-      console.error("Update settings error:", error);
+      console.log("💾 Attempting to update settings in database with:", validatedData);
+      try {
+        const settings = await storage.updateSettings(validatedData);
+        console.log("✅ Settings successfully updated in database:", settings);
+        return res.status(200).json(settings);
+      } catch (dbError: any) {
+        console.error("❌ DATABASE ERROR during settings update:", dbError);
+        console.error("Error details:", { 
+          message: dbError.message || "Unknown error", 
+          code: dbError.code || "UNKNOWN", 
+          stack: dbError.stack || "No stack trace" 
+        });
+        return res.status(500).json({ 
+          message: "Database error while updating settings", 
+          error: dbError.message || "Unknown database error",
+          code: dbError.code || "UNKNOWN"
+        });
+      }
+    } catch (error: any) {
+      console.error("❌ SETTINGS UPDATE ERROR:", error);
       
       if (error instanceof ZodError) {
+        console.error("📋 Validation error details:", error.errors);
         return res.status(400).json({ 
           message: "Invalid settings data", 
           errors: error.errors 
         });
       }
       
-      return res.status(500).json({ message: "Error updating settings" });
+      console.error("⚠️ Unexpected error type:", error.constructor?.name || "Unknown");
+      return res.status(500).json({ 
+        message: "Error updating settings",
+        error: error.message || "Unknown error"
+      });
     }
   });
   
@@ -201,40 +223,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   app.put("/api/content/:day", requireAuth, async (req, res) => {
+    const day = parseInt(req.params.day);
+    console.log(`📥 PUT /api/content/${day} - Received request with body:`, req.body);
+    
     try {
-      const day = parseInt(req.params.day);
-      
       if (isNaN(day) || day < 1 || day > 30) {
+        console.log(`❌ Invalid day parameter: ${day}`);
         return res.status(400).json({ message: "Invalid day parameter. Must be between 1 and 30." });
       }
       
       const { title, type, content: contentData } = req.body;
+      console.log(`📋 Processing content update for day ${day}:`, { title, type, contentDataKeys: Object.keys(contentData || {}) });
       
-      // Validate content type
+      // Validation steps with detailed logging
+      console.log(`📋 Validating content type: ${type}`);
       const validatedType = contentTypeSchema.parse(type);
       
-      // Validate content data based on type
+      console.log(`📋 Validating content data for type ${type}:`, contentData);
       contentDataSchema.parse(contentData);
+      console.log("✅ Content data validation passed");
       
-      // Update content
-      const updatedContent = await storage.updateContent(day, {
-        title,
-        type: validatedType,
-        content: contentData
-      });
-      
-      return res.status(200).json(updatedContent);
+      // Database update with error handling
+      console.log(`💾 Attempting to update content in database for day ${day}`);
+      try {
+        const updatedContent = await storage.updateContent(day, {
+          title,
+          type: validatedType,
+          content: contentData
+        });
+        console.log(`✅ Content successfully updated for day ${day}:`, updatedContent);
+        return res.status(200).json(updatedContent);
+      } catch (dbError: any) {
+        console.error(`❌ DATABASE ERROR during content update for day ${day}:`, dbError);
+        console.error("Error details:", { 
+          message: dbError.message || "Unknown error", 
+          code: dbError.code || "UNKNOWN", 
+          stack: dbError.stack || "No stack trace" 
+        });
+        return res.status(500).json({ 
+          message: "Database error while updating content", 
+          error: dbError.message || "Unknown database error",
+          code: dbError.code || "UNKNOWN"
+        });
+      }
     } catch (error) {
-      console.error(`Update content error for day ${req.params.day}:`, error);
+      console.error(`❌ CONTENT UPDATE ERROR for day ${day}:`, error);
       
       if (error instanceof ZodError) {
+        console.error("📋 Validation error details:", error.errors);
         return res.status(400).json({ 
           message: "Invalid content data", 
           errors: error.errors 
         });
       }
       
-      return res.status(500).json({ message: "Error updating content" });
+      console.error("⚠️ Unexpected error type:", error.constructor.name);
+      return res.status(500).json({ 
+        message: "Error updating content",
+        error: error.message
+      });
     }
   });
   

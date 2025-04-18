@@ -1,0 +1,55 @@
+Ce type de problème (fonctionne en dev, échoue en prod, surtout pour les écritures alors que les lectures fonctionnent) est malheureusement classique et pointe souvent vers des différences de configuration ou de permissions entre les environnements.
+
+Voici les causes les plus probables et une démarche pour diagnostiquer et résoudre le problème :
+
+**Causes Probables Principales**
+
+1.  **Permissions de la Base de Données (Très probable) :**
+    * L'utilisateur PostgreSQL configuré pour votre application en *production* n'a peut-être que des droits de lecture (`SELECT`) mais pas d'écriture (`INSERT`, `UPDATE`, `DELETE`) sur les tables concernées. En développement, vous utilisez souvent un utilisateur avec des droits plus larges.
+    * **Action :** Connectez-vous à votre base de données PostgreSQL de production *en utilisant les mêmes identifiants que ceux configurés dans votre application Express en production*. Essayez d'exécuter manuellement une requête `UPDATE` ou `INSERT` sur l'une des tables où la sauvegarde échoue (par exemple, `UPDATE settings SET ... WHERE ...;`). Si vous obtenez une erreur de type "permission denied", c'est la cause. Accordez les permissions nécessaires (`GRANT INSERT, UPDATE ON nom_de_la_table TO nom_utilisateur_prod;`).
+
+2.  **Variables d'Environnement / Configuration (Très probable) :**
+    * Les détails de connexion à la base de données (hôte, port, nom d'utilisateur, mot de passe, nom de la base) sont-ils *absolument identiques* et corrects dans l'environnement de production où tourne votre backend Express ? Une faute de frappe ou une variable manquante est vite arrivée.
+    * D'autres configurations critiques (clés secrètes pour les sessions, URL attendues, etc.) sont-elles correctement définies en production ?
+    * **Action :** Vérifiez méticuleusement *toutes* les variables d'environnement ou fichiers de configuration utilisés par votre application backend en production. Assurez-vous qu'elles sont bien chargées et utilisées par le processus Node.js. Ajoutez des logs au démarrage de votre serveur Express pour afficher les valeurs de configuration critiques (masquez les mots de passe dans les logs !).
+
+3.  **Gestion des Erreurs Côté Backend (Très probable) :**
+    * Il est possible qu'une erreur *se produise réellement* lors de l'opération d'écriture en base de données côté backend (par exemple, violation de contrainte, type de données incorrect, problème de connexion intermittent), mais que votre code de gestion des erreurs ne la logue pas correctement ou ne renvoie pas un message d'erreur suffisamment détaillé au frontend. Le message générique "Une erreur s'est produite" que vous voyez est probablement généré par votre frontend parce que la requête API a échoué (status 500, 400, etc.).
+    * **Action :** Renforcez *drastiquement* les logs dans vos gestionnaires de routes PUT (`/api/settings`, `/api/content/:day`) :
+        * Loggez dès l'entrée dans la fonction.
+        * Loggez le `req.body` reçu pour vérifier que les données arrivent correctement.
+        * Encapsulez l'appel à la base de données (`pool.query`, `orm.save()`, etc.) dans un bloc `try...catch`.
+        * **Dans le bloc `catch`, loguez l'objet d'erreur complet (`console.error('DB Write Error:', error);`), y compris `error.message`, `error.code` (très utile pour les erreurs DB), et potentiellement `error.stack`.** C'est l'étape la plus cruciale pour voir *pourquoi* l'écriture échoue.
+        * Assurez-vous que votre système de logging en production capture bien ces `console.error`.
+
+**Autres Causes Possibles**
+
+4.  **Configuration CORS (Cross-Origin Resource Sharing) :**
+    * Bien que les requêtes GET fonctionnent, les politiques CORS en production peuvent être plus strictes pour les méthodes comme PUT ou pour les requêtes envoyant des données (`Content-Type: application/json`) ou nécessitant des informations d'identification (`credentials: 'include'`).
+    * **Action :** Vérifiez la configuration du middleware CORS dans votre application Express en production. Assurez-vous que l'origine de votre frontend de production est explicitement autorisée, que la méthode `PUT` est dans la liste des méthodes autorisées (`methods: ['GET', 'POST', 'PUT', ...]`), que les en-têtes nécessaires (`Content-Type`, `Authorization`, etc.) sont autorisés (`allowedHeaders`), et que `credentials: true` est bien défini si vous utilisez des sessions/cookies.
+
+5.  **Middleware (Body Parser, Session) :**
+    * Est-ce que le middleware pour parser le corps des requêtes JSON (`express.json()` ou `bodyParser.json()`) est correctement configuré et placé *avant* vos routes en production ? S'il manque ou est mal configuré, `req.body` sera vide ou incorrect pour les requêtes PUT.
+    * Un problème avec le middleware de session (`express-session`) en production pourrait faire que l'authentification semble fonctionner (lecture de session OK) mais que l'écriture de session ou la validation CSRF (si utilisée) échoue pour les requêtes modifiant l'état. Vérifiez la configuration du `store` de session en production et les secrets.
+
+6.  **Proxy Inverse / Load Balancer (Nginx, Apache, etc.) :**
+    * Si vous avez un proxy inverse devant votre application Node.js en production, il pourrait mal transmettre les requêtes PUT, avoir des limites de taille de corps de requête trop basses, ou ne pas gérer correctement les en-têtes nécessaires.
+    * **Action :** Vérifiez la configuration et les logs de votre proxy inverse pour toute erreur liée aux requêtes PUT vers votre backend.
+
+7.  **Problèmes Réseau / Pare-feu :**
+    * Moins probable si les GET fonctionnent, mais un pare-feu entre votre serveur d'application et votre serveur de base de données pourrait bloquer spécifiquement les connexions pour les écritures ou sur certains ports si la configuration est très spécifique.
+
+**Démarche de Débogage Systématique**
+
+1.  **Vérifier les Permissions DB (Action 1 ci-dessus).** C'est le plus probable.
+2.  **Vérifier les Variables d'Environnement (Action 2).**
+3.  **Améliorer les Logs Backend (Action 3).** C'est essentiel. Déployez les logs améliorés.
+4.  **Inspecter la Réponse Réseau :** Dans les outils de développement de votre navigateur (onglet Network), lorsque vous tentez une sauvegarde qui échoue en production :
+    * Quelle est le **code de statut HTTP exact** de la requête PUT échouée (500 Internal Server Error ? 403 Forbidden ? 400 Bad Request ?) ?
+    * Quel est le **corps de la réponse** renvoyé par le serveur ? Contient-il un message d'erreur JSON plus spécifique ? Le message "Échec de la sauvegarde..." vient de votre frontend, il faut voir ce que le backend a *réellement* répondu.
+5.  **Tester avec `curl` ou Postman :** Essayez d'exécuter la requête PUT directement depuis le serveur de production (si possible) ou depuis votre machine vers l'API de production en utilisant `curl` ou Postman, en fournissant les bons en-têtes et le corps de la requête. Cela permet d'isoler le problème du frontend.
+6.  **Vérifier CORS (Action 4).**
+7.  **Vérifier les Middlewares (Action 5).**
+8.  **Vérifier le Proxy Inverse (Action 6).**
+
+En suivant ces étapes, en commençant par les permissions DB, la configuration et surtout l'amélioration des logs backend pour voir l'erreur réelle, vous devriez pouvoir identifier la cause racine de cet échec d'écriture en production.
