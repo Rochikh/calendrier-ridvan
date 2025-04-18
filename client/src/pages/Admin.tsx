@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import AdminContentForm from "@/components/AdminContentForm";
 import AdminSettingsForm from "@/components/AdminSettingsForm";
 import AdminContentTable from "@/components/AdminContentTable";
+import QuickImageContent from "@/components/QuickImageContent";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function Admin() {
@@ -76,6 +77,11 @@ export default function Admin() {
               <AdminContentTable 
                 totalDays={settings?.totalDays || 19} 
                 onEditContent={handleEditContent}
+              />
+              
+              {/* Quick Image Content */}
+              <QuickImageContent 
+                totalDays={settings?.totalDays || 19} 
               />
               
               {/* Content Management Form */}
