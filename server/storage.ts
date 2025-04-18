@@ -266,12 +266,5 @@ export class DatabaseStorage implements IStorage {
   }
 }
 
-// Import le stockage de fichiers
-import { FileStorage, fileStorage } from './file-storage';
-
-// Choix de l'implémentation en fonction de l'environnement
-const isDevelopment = process.env.NODE_ENV === 'development';
-console.log(`🔧 Environment: ${process.env.NODE_ENV}, using ${isDevelopment ? 'PostgreSQL' : 'File'} storage`);
-
-// Utilisez le stockage de fichiers en production et PostgreSQL en développement
-export const storage = isDevelopment ? new DatabaseStorage() : fileStorage;
+// Create the storage implementation - Utilisons PostgreSQL pour tout
+export const storage = new DatabaseStorage();
