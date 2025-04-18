@@ -320,16 +320,11 @@ export default function AdminContentForm({ totalDays, initialDay = 1 }: AdminCon
     console.log("Is form valid:", form.formState.isValid);
     
     try {
-      // Assurons-nous que l'URL est valide pour éviter les problèmes de validation
-      if (data.type === "image" && data.imageUrl && !data.imageUrl.startsWith("http")) {
-        data.imageUrl = "http://" + data.imageUrl;
-        console.log("Fixed image URL:", data.imageUrl);
-      }
+      // Créons une copie profonde de l'objet data pour éviter toute modification imprévue
+      const formData = JSON.parse(JSON.stringify(data));
       
-      if (data.type === "video" && data.videoUrl && !data.videoUrl.startsWith("http")) {
-        data.videoUrl = "http://" + data.videoUrl;
-        console.log("Fixed video URL:", data.videoUrl);
-      }
+      // NE PAS modifier les URLs manuellement, elles doivent déjà être valides depuis l'upload
+      console.log("Image URL avant envoi:", formData.imageUrl);
       
       // Essayons une approche encore plus directe avec fetch
       try {
@@ -341,10 +336,18 @@ export default function AdminContentForm({ totalDays, initialDay = 1 }: AdminCon
             contentData = { text: data.text };
             break;
           case "image":
+            // Pour le type image, récupérons d'abord la valeur actuelle directement du formulaire
+            const imageUrl = form.getValues("imageUrl");
+            console.log("Image URL from form.getValues():", imageUrl);
+            console.log("Image URL from data param:", data.imageUrl);
+            
+            // Utilisons la valeur directement récupérée du formulaire pour plus de sûreté
             contentData = { 
-              imageUrl: data.imageUrl,
+              imageUrl: imageUrl || data.imageUrl,
               imageCaption: data.imageCaption
             };
+            
+            console.log("Final image content data:", contentData);
             break;
           case "video":
             contentData = { videoUrl: data.videoUrl };
@@ -453,12 +456,42 @@ export default function AdminContentForm({ totalDays, initialDay = 1 }: AdminCon
       
       setUploadProgress(100); // Complete progress
       
+      console.log("File upload successful, fileUrl received:", uploadResult.fileUrl);
+      
       // Update form based on file type
       if (type === "image") {
-        form.setValue("imageUrl", uploadResult.fileUrl, { shouldValidate: true });
-        setImagePreview(uploadResult.fileUrl);
+        // Force l'URL exacte telle que reçue du serveur
+        const fileUrl = uploadResult.fileUrl;
+        console.log("Setting image URL in form:", fileUrl);
+        
+        // Mettre à jour le champ du formulaire avec l'URL exacte
+        form.setValue("imageUrl", fileUrl, { 
+          shouldValidate: true,
+          shouldDirty: true,
+          shouldTouch: true
+        });
+        
+        // Force la mise à jour de la prévisualisation
+        setImagePreview(fileUrl);
+        
+        // Vérifier que la valeur est bien enregistrée dans le formulaire
+        setTimeout(() => {
+          const formValue = form.getValues("imageUrl");
+          console.log("Form imageUrl value after update:", formValue);
+          if (formValue !== fileUrl) {
+            console.warn("WARNING: Form value doesn't match uploaded URL");
+            // Réessayer de définir la valeur
+            form.setValue("imageUrl", fileUrl, { shouldValidate: true });
+          }
+        }, 100);
       } else if (type === "video") {
-        form.setValue("videoUrl", uploadResult.fileUrl, { shouldValidate: true });
+        const fileUrl = uploadResult.fileUrl;
+        console.log("Setting video URL in form:", fileUrl);
+        form.setValue("videoUrl", fileUrl, { 
+          shouldValidate: true,
+          shouldDirty: true,
+          shouldTouch: true
+        });
       }
       
       toast({
