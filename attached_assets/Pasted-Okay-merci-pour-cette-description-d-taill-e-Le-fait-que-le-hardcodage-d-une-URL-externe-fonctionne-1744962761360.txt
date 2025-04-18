@@ -1,0 +1,163 @@
+Okay, merci pour cette description détaillée. Le fait que le hardcodage d'une URL externe fonctionne est un indice très fort. Cela isole le problème à la chaîne d'événements entre le moment où l'upload du fichier réussit côté serveur et le moment où l'URL de ce fichier uploadé est incluse dans les données envoyées par le formulaire principal ("Enregistrer le contenu").
+
+Compte tenu de votre stack (React, `react-hook-form`, Multer) et des symptômes, **la cause la plus probable est que l'URL renvoyée par l'API d'upload n'est pas correctement capturée et injectée dans l'état du formulaire géré par `react-hook-form` avant la soumission finale.**
+
+Voici le flux typique et où la rupture se produit probablement :
+
+1.  **Sélection Fichier :** L'utilisateur choisit un fichier via un `<input type="file">`.
+2.  **Déclenchement Upload :** Un événement (`onChange` sur l'input fichier, ou un bouton "Uploader") déclenche une fonction d'upload asynchrone.
+3.  **Appel API Upload :** Cette fonction envoie le fichier (via `FormData`) à votre endpoint backend dédié (celui qui utilise Multer).
+4.  **Traitement Backend (Multer) :** Multer enregistre le fichier dans `/uploads`.
+5.  **Génération URL :** Votre backend génère l'URL accessible pour ce fichier (ex: `/uploads/mon_image.jpg` ou `http://votreserveur.com/uploads/mon_image.jpg`). **Point Clé 1 :** Assurez-vous que cette URL est correcte et que le dossier `/uploads` est bien servi statiquement par Express pour être accessible depuis le navigateur.
+    ```javascript
+    // Exemple dans Express pour servir le dossier 'uploads'
+    app.use('/uploads', express.static('uploads'));
+    ```
+6.  **Réponse API Upload :** Le backend renvoie une réponse JSON contenant l'URL générée. Ex: `{ "url": "/uploads/mon_image.jpg" }`.
+7.  **Réception Frontend :** La fonction d'upload asynchrone dans React reçoit cette réponse.
+8.  **Mise à jour État Formulaire (Point de défaillance probable) :** C'est ici que le lien doit se faire. La fonction d'upload, une fois l'URL reçue, **doit explicitement mettre à jour le champ correspondant dans l'état de `react-hook-form`**. Si cette étape manque ou est incorrecte, l'URL de l'upload précédent (ou une valeur par défaut/vide) sera envoyée lors de la soumission finale.
+9.  **Soumission Formulaire :** L'utilisateur clique sur "Enregistrer le contenu". `react-hook-form` collecte les données via `handleSubmit`.
+10. **Appel API Contenu :** Les données du formulaire (titre, type, *et l'URL de l'image qui aurait dû être mise à jour à l'étape 8*) sont envoyées à `PUT /api/content/:day`.
+11. **Sauvegarde DB :** Le backend enregistre les données reçues. Si l'URL était incorrecte à l'étape 10, la mauvaise URL est enregistrée.
+
+**Solution Robuste : Utiliser `setValue` de `react-hook-form`**
+
+Vous devez lier le résultat de l'upload à votre formulaire.
+
+1.  **Enregistrez un champ pour l'URL de l'image dans `react-hook-form` :**
+    Même si l'utilisateur interagit avec un `<input type="file">`, vous avez besoin d'un champ (qui peut être de type `hidden` ou `text`) dans votre formulaire pour *stocker* l'URL résultante.
+
+    ```tsx
+    import { useForm } from 'react-hook-form';
+
+    type ContentFormData = {
+      title: string;
+      type: string;
+      // ... autres champs
+      imageUrl: string; // Champ pour stocker l'URL finale
+      // Note : N'enregistrez PAS l'input type="file" directement ici
+      // s'il ne sert qu'à déclencher l'upload.
+    };
+
+    function AdminForm() {
+      const { register, handleSubmit, setValue, watch } = useForm<ContentFormData>();
+      const [isUploading, setIsUploading] = useState(false);
+      const [previewUrl, setPreviewUrl] = useState<string | null>(null); // Pour la prévisualisation
+
+      // Fonction appelée par l'onChange de l'input type="file"
+      const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        setIsUploading(true);
+        setPreviewUrl(null); // Reset preview
+
+        const formData = new FormData();
+        // 'imageFile' est le nom attendu par Multer sur le backend
+        formData.append('imageFile', file);
+
+        try {
+          // Remplacez par votre appel API réel pour l'upload
+          const response = await fetch('/api/upload', {
+            method: 'POST',
+            body: formData,
+          });
+
+          if (!response.ok) {
+            throw new Error('Upload failed');
+          }
+
+          const result = await response.json(); // Ex: { url: '/uploads/image.jpg' }
+          const uploadedUrl = result.url;
+
+          console.log('Upload successful, URL received:', uploadedUrl);
+
+          // --- !! MISE À JOUR CRITIQUE !! ---
+          // Met à jour le champ 'imageUrl' dans react-hook-form
+          setValue('imageUrl', uploadedUrl, {
+             shouldValidate: true, // Optionnel: déclencher la validation si besoin
+             shouldDirty: true     // Optionnel: marquer le champ comme modifié
+          });
+          // --- Fin de la mise à jour critique ---
+
+          setPreviewUrl(uploadedUrl); // Mettre à jour la prévisualisation
+
+        } catch (error) {
+          console.error("Erreur pendant l'upload:", error);
+          // Afficher un message d'erreur à l'utilisateur
+        } finally {
+          setIsUploading(false);
+        }
+      };
+
+      // Fonction de soumission pour enregistrer le contenu
+      const onSubmit = async (data: ContentFormData) => {
+         console.log("Données soumises à l'API de contenu:", data); // Vérifiez ici si data.imageUrl est correcte
+         // Appel à PUT /api/content/:day avec 'data'
+         try {
+            const response = await fetch(`/api/content/${/* dayId */ 6}`, { // Mettez le bon ID du jour
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data),
+            });
+             if (!response.ok) throw new Error('Failed to save content');
+             // Gérer succès
+         } catch(error) {
+             console.error("Erreur sauvegarde contenu:", error);
+             // Gérer erreur
+         }
+      };
+
+      return (
+        <form onSubmit={handleSubmit(onSubmit)}>
+          {/* Champ caché ou texte pour stocker l'URL, géré par RHF */}
+          <input type="hidden" {...register('imageUrl')} />
+          {/* Ou si vous voulez voir/modifier l'URL: */}
+          {/* <input type="text" {...register('imageUrl')} placeholder="Image URL" /> */}
+
+          {/* Input pour sélectionner et déclencher l'upload */}
+          <div>
+            <label>Image :</label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleImageUpload}
+              disabled={isUploading}
+            />
+            {isUploading && <p>Upload en cours...</p>}
+          </div>
+
+          {/* Prévisualisation */}
+          {previewUrl && <img src={previewUrl} alt="Prévisualisation" style={{ maxWidth: '200px', display: 'block', margin: '10px 0' }} />}
+          {/* Note: watch('imageUrl') peut aussi être utilisé pour la preview si vous préférez lire depuis l'état RHF */}
+          {/* {watch('imageUrl') && <img src={watch('imageUrl')} alt="Prévisualisation RHF" style={{ maxWidth: '200px', display: 'block', margin: '10px 0' }} />} */}
+
+
+          {/* Autres champs du formulaire */}
+          <div>
+            <label>Titre :</label>
+            <input {...register('title', { required: true })} />
+          </div>
+          <div>
+            <label>Type :</label>
+            <input {...register('type', { required: true })} />
+          </div>
+          {/* ... autres champs */}
+
+          <button type="submit" disabled={isUploading}>
+            Enregistrer le contenu
+          </button>
+        </form>
+      );
+    }
+    ```
+
+**Étapes de débogage supplémentaires :**
+
+1.  **Vérifier la réponse de l'API d'upload :** Dans la fonction `handleImageUpload`, ajoutez `console.log('Réponse API Upload:', result);` juste après `await response.json()` pour être sûr que l'URL est bien présente et correcte dans la réponse du backend.
+2.  **Vérifier la mise à jour `setValue` :** Assurez-vous que `setValue('imageUrl', uploadedUrl, ...)` est bien appelée avec la bonne URL.
+3.  **Inspecter les données avant soumission :** Dans la fonction `onSubmit`, le `console.log("Données soumises...", data);` est crucial. Vérifiez la valeur de `data.imageUrl` juste avant l'envoi à l'API de contenu. Est-elle correcte ?
+4.  **Vérifier le Payload Réseau :** Utilisez l'onglet "Network" des outils de développement de votre navigateur. Trouvez la requête PUT vers `/api/content/:day` lorsque vous cliquez sur "Enregistrer". Inspectez l'onglet "Payload" ou "Request Body" pour voir le JSON exact envoyé. L'URL de l'image est-elle correcte ici ?
+5.  **Vérifier le nom du champ Multer :** Assurez-vous que le nom utilisé dans `formData.append('imageFile', file)` correspond exactement à celui que Multer attend sur le backend (défini avec `upload.single('imageFile')` ou similaire).
+
+En implémentant correctement l'appel à `setValue` après l'upload réussi, vous devriez synchroniser l'état de votre formulaire `react-hook-form` avec l'URL de l'image fraîchement uploadée, résolvant ainsi le problème.
