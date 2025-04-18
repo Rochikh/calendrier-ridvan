@@ -16,16 +16,19 @@ export default function Home() {
   });
 
   // Fetch content for selected day
-  const { data: content, isLoading: isLoadingContent } = useQuery<Content>({
+  const { data: content, isLoading: isLoadingContent } = useQuery<Content[]>({
     queryKey: ["/api/content", currentDay],
     enabled: !!currentDay,
   });
 
   // Update current content when content is loaded
   useEffect(() => {
-    if (content) {
+    if (content && content.length > 0) {
       console.log("Content loaded for day", currentDay, ":", content);
-      setCurrentContent(content);
+      // Prendre le premier élément du tableau car getContent renvoie un tableau
+      const contentItem = content[0];
+      console.log("Using content item:", contentItem);
+      setCurrentContent(contentItem);
     }
   }, [content, currentDay]);
 

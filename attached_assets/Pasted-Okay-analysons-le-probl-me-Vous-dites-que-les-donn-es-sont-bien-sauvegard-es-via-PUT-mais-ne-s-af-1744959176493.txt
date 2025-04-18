@@ -1,0 +1,60 @@
+Okay, analysons le problème. Vous dites que les données sont bien sauvegardées via PUT, mais ne s'affichent pas correctement lorsque vous cliquez sur une étoile (ce qui, je suppose, sélectionne un jour). Le code que vous avez fourni montre comment vous *essayez* de récupérer et d'afficher le contenu pour le jour sélectionné (`currentDay`).
+
+Voici une approche systématique pour déboguer ce problème, en suivant le flux de données :
+
+1.  **Vérifier la mise à jour de `currentDay` :**
+    * Assurez-vous que lorsque vous cliquez sur une étoile, l'état `currentDay` est correctement mis à jour avec l'identifiant unique du jour sélectionné (celui que vous utilisez dans l'URL de l'API, comme `baha`, `jalal`, etc., ou une date/numéro).
+    * Ajoutez un `console.log` juste après la mise à jour de `currentDay` pour vérifier sa valeur :
+        ```typescript
+        // Dans la fonction qui gère le clic sur l'étoile
+        const handleStarClick = (dayId) => {
+          console.log("Star clicked, setting currentDay to:", dayId);
+          setCurrentDay(dayId); // Assurez-vous que cette ligne existe et fonctionne
+        };
+        ```
+
+2.  **Vérifier le déclenchement et l'URL de la requête `useQuery` :**
+    * Ouvrez les outils de développement de votre navigateur (généralement F12), allez dans l'onglet "Network" (ou "Réseau").
+    * Cliquez sur une étoile.
+    * Filtrez les requêtes pour trouver celle qui correspond à votre API (par exemple, cherchez "content").
+    * Vérifiez que :
+        * Une nouvelle requête GET est bien envoyée lorsque `currentDay` change.
+        * L'URL de la requête est correcte et inclut la bonne valeur de `currentDay`. Par exemple : `/api/content/nom_du_jour`.
+        * Le statut de la réponse est `200 OK`. S'il y a une erreur (4xx ou 5xx), le problème vient du backend ou de la requête elle-même.
+        * Examinez la "Response" (Réponse) ou "Preview" (Aperçu) de la requête dans les outils de développement. Est-ce que le JSON retourné par le serveur contient les données attendues pour ce jour ?
+
+3.  **Vérifier le backend (GET `/api/content/:day`) :**
+    * Même si le PUT fonctionne, assurez-vous que votre route GET sur le backend Express récupère correctement le paramètre `:day` de l'URL (`req.params.day`), l'utilise pour interroger la base de données PostgreSQL, et retourne le contenu correct au format JSON.
+    * Testez cette route GET directement avec un outil comme Postman, Insomnia, ou même `curl` pour être sûr qu'elle fonctionne indépendamment du frontend.
+
+4.  **Vérifier le `useEffect` et la mise à jour de `currentContent` :**
+    * Votre `useEffect` dépend de `[content, currentDay]`. Le `console.log` à l'intérieur est une bonne première étape.
+    * Est-ce que ce `console.log("Content loaded for day", currentDay, ":", content);` s'affiche dans la console du navigateur lorsque vous cliquez sur une étoile *après* que la requête réseau (étape 2) ait réussi ?
+    * Si oui, est-ce que la valeur de `content` affichée dans la console est bien celle que vous attendez (celle vue dans l'onglet Network) ?
+    * Si le log s'affiche avec le bon contenu, alors `setCurrentContent(content)` devrait fonctionner.
+
+5.  **Vérifier l'affichage de `currentContent` :**
+    * Comment utilisez-vous l'état `currentContent` dans votre JSX pour afficher les informations ?
+    * Assurez-vous que vous accédez aux bonnes propriétés de l'objet `currentContent`. Par exemple, si `currentContent` est un objet comme `{ id: 1, text: "Info du jour", day: "baha" }`, vous devez utiliser `{currentContent.text}` (ou similaire) dans votre rendu.
+    * Ajoutez un `console.log` juste avant la partie du JSX qui doit afficher le contenu pour voir la valeur *actuelle* de `currentContent` à chaque rendu :
+        ```tsx
+        // Dans le return de votre composant Home
+        console.log("Rendering with currentContent:", currentContent);
+        return (
+          <div>
+            {/* ... autre JSX ... */}
+            {currentContent ? (
+              <div>
+                <h3>Contenu pour {currentDay}</h3>
+                <p>{/* Affichez ici les propriétés de currentContent, par ex: currentContent.details */}</p>
+              </div>
+            ) : (
+              <p>Sélectionnez un jour pour voir le contenu.</p>
+            )}
+            {/* ... autre JSX ... */}
+          </div>
+        );
+        ```
+    * Vérifiez s'il n'y a pas une condition (`isLoadingContent`, par exemple) qui empêcherait l'affichage même si `currentContent` est défini.
+
+En suivant ces étapes, vous devriez pouvoir identifier où la chaîne se brise : la mise à jour de l'état du jour, l'appel API, la réception/traitement des données, ou le rendu final.
