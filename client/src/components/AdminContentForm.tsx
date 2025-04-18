@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Content, ContentType, contentTypeSchema } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
+import { updateContent } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Card, CardContent, 
@@ -252,26 +253,15 @@ export default function AdminContentForm({ totalDays, initialDay = 1 }: AdminCon
       });
       
       try {
-        const response = await fetch(`/api/content/${selectedDay}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            title: data.title,
-            type: data.type,
-            content: contentData
-          }),
-          credentials: 'include'
+        // Utiliser la fonction d'API standard au lieu d'un appel fetch direct
+        const result = await updateContent(selectedDay, {
+          title: data.title,
+          type: data.type as ContentType,
+          content: contentData
         });
         
-        if (!response.ok) {
-          throw new Error(`API error: ${response.status}`);
-        }
-        
-        const responseData = await response.json();
-        console.log("API response:", responseData);
-        return responseData;
+        console.log("Content saved successfully:", result);
+        return result;
       } catch (error) {
         console.error("API request failed:", error);
         throw error;
