@@ -94,11 +94,19 @@ export class DatabaseStorage implements IStorage {
   
   // Content methods
   async getContent(day: number): Promise<Content | undefined> {
-    const [contentItem] = await db
+    console.log(`Storage: Fetching content for day ${day}`);
+    
+    const query = db
       .select()
       .from(content)
       .where(eq(content.day, day));
+      
+    console.log("SQL query:", query.toSQL());
     
+    const results = await query;
+    console.log(`Query results for day ${day}:`, results);
+    
+    const [contentItem] = results;
     return contentItem;
   }
   

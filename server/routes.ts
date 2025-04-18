@@ -170,13 +170,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid day parameter. Must be between 1 and 30." });
       }
       
+      console.log(`Getting content for specific day: ${day}`);
       let contentItem = await storage.getContent(day);
       
       if (!contentItem) {
         return res.status(404).json({ message: `No content found for day ${day}` });
       }
       
-      return res.status(200).json(contentItem);
+      // Retourner l'objet contentItem directement, pas dans un tableau
+      return res.status(200).json([contentItem]); // On garde le format tableau pour éviter de changer le frontend à nouveau
     } catch (error) {
       console.error(`Get content error for day ${req.params.day}:`, error);
       return res.status(500).json({ message: "Error fetching content" });
