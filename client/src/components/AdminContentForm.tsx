@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -6,6 +6,8 @@ import { z } from "zod";
 import { Content, ContentType, contentTypeSchema } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { uploadFile, UploadResponse } from "@/lib/api";
+import { UploadCloud, Image, Video, Loader2 } from "lucide-react";
 import { 
   Card, CardContent, 
   Form, FormControl, FormField, FormItem, FormLabel,
@@ -318,6 +320,79 @@ export default function AdminContentForm({ totalDays, initialDay = 1 }: AdminCon
   // Handle image preview
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   
+  // Upload states
+  const [isUploading, setIsUploading] = useState<boolean>(false);
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
+  
+  // File input references
+  const imageFileInputRef = useRef<HTMLInputElement>(null);
+  const videoFileInputRef = useRef<HTMLInputElement>(null);
+  
+  // File upload handler
+  const handleFileUpload = async (file: File, type: "image" | "video") => {
+    if (!file) return;
+    
+    try {
+      setIsUploading(true);
+      setUploadProgress(10); // Start progress
+      
+      // Upload file to server
+      const uploadResult = await uploadFile(file);
+      
+      setUploadProgress(100); // Complete progress
+      
+      // Update form based on file type
+      if (type === "image") {
+        form.setValue("imageUrl", uploadResult.fileUrl, { shouldValidate: true });
+        setImagePreview(uploadResult.fileUrl);
+      } else if (type === "video") {
+        form.setValue("videoUrl", uploadResult.fileUrl, { shouldValidate: true });
+      }
+      
+      toast({
+        title: "Fichier téléchargé",
+        description: `Le fichier ${uploadResult.originalName} a été téléchargé avec succès.`,
+      });
+    } catch (error) {
+      console.error("File upload error:", error);
+      toast({
+        title: "Échec du téléchargement",
+        description: error instanceof Error ? error.message : "Une erreur s'est produite lors du téléchargement du fichier",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUploading(false);
+      setUploadProgress(0);
+    }
+  };
+  
+  // File input handlers
+  const triggerImageFileInput = () => {
+    if (imageFileInputRef.current) {
+      imageFileInputRef.current.click();
+    }
+  };
+  
+  const handleImageFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      handleFileUpload(file, "image");
+    }
+  };
+  
+  const triggerVideoFileInput = () => {
+    if (videoFileInputRef.current) {
+      videoFileInputRef.current.click();
+    }
+  };
+  
+  const handleVideoFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      handleFileUpload(file, "video");
+    }
+  };
+  
   // Update selectedDay when initialDay prop changes
   useEffect(() => {
     if (initialDay !== selectedDay) {
@@ -429,20 +504,62 @@ export default function AdminContentForm({ totalDays, initialDay = 1 }: AdminCon
             {/* Image Content Fields */}
             {contentType === "image" && (
               <>
+                {/* Hidden input for file upload */}
+                <input 
+                  type="file" 
+                  ref={imageFileInputRef}
+                  onChange={handleImageFileChange}
+                  accept="image/*"
+                  className="hidden"
+                />
+                
                 <FormField
                   control={form.control}
                   name="imageUrl"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="block text-gray-700 font-[Inter] mb-2">Image URL</FormLabel>
-                      <FormControl>
-                        <Input 
-                          {...field} 
-                          type="url" 
-                          placeholder="Enter image URL" 
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1E3A8A] font-[Inter]"
-                        />
-                      </FormControl>
+                      <FormLabel className="block text-gray-700 font-[Inter] mb-2">Image</FormLabel>
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-3">
+                          <Button 
+                            type="button" 
+                            onClick={triggerImageFileInput}
+                            disabled={isUploading}
+                            className="inline-flex items-center bg-blue-500 hover:bg-blue-600 gap-2"
+                          >
+                            {isUploading ? (
+                              <>
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                                <span>Uploading...</span>
+                              </>
+                            ) : (
+                              <>
+                                <UploadCloud className="h-4 w-4" />
+                                <span>Upload Image</span>
+                              </>
+                            )}
+                          </Button>
+                          <span className="text-sm text-gray-500">or</span>
+                        </div>
+                        
+                        <FormControl>
+                          <Input 
+                            {...field} 
+                            type="url" 
+                            placeholder="Enter image URL" 
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1E3A8A] font-[Inter]"
+                          />
+                        </FormControl>
+                        
+                        {isUploading && (
+                          <div className="w-full bg-gray-200 rounded-full h-2.5 mt-2">
+                            <div 
+                              className="bg-blue-600 h-2.5 rounded-full transition-all duration-300 ease-in-out" 
+                              style={{ width: `${uploadProgress}%` }}
+                            ></div>
+                          </div>
+                        )}
+                      </div>
                     </FormItem>
                   )}
                 />
@@ -479,23 +596,80 @@ export default function AdminContentForm({ totalDays, initialDay = 1 }: AdminCon
             
             {/* Video Content Fields */}
             {contentType === "video" && (
-              <FormField
-                control={form.control}
-                name="videoUrl"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="block text-gray-700 font-[Inter] mb-2">Video URL</FormLabel>
-                    <FormControl>
-                      <Input 
-                        {...field} 
-                        type="url" 
-                        placeholder="Enter video URL (YouTube, Vimeo, etc.)" 
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1E3A8A] font-[Inter]"
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
+              <>
+                {/* Hidden input for file upload */}
+                <input 
+                  type="file" 
+                  ref={videoFileInputRef}
+                  onChange={handleVideoFileChange}
+                  accept="video/*"
+                  className="hidden"
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="videoUrl"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="block text-gray-700 font-[Inter] mb-2">Video</FormLabel>
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-3">
+                          <Button 
+                            type="button" 
+                            onClick={triggerVideoFileInput}
+                            disabled={isUploading}
+                            className="inline-flex items-center bg-red-500 hover:bg-red-600 gap-2"
+                          >
+                            {isUploading ? (
+                              <>
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                                <span>Uploading...</span>
+                              </>
+                            ) : (
+                              <>
+                                <Video className="h-4 w-4" />
+                                <span>Upload Video</span>
+                              </>
+                            )}
+                          </Button>
+                          <span className="text-sm text-gray-500">ou indiquez une URL de vidéo (YouTube, Vimeo...)</span>
+                        </div>
+                        
+                        <FormControl>
+                          <Input 
+                            {...field} 
+                            type="url" 
+                            placeholder="Enter video URL (YouTube, Vimeo, etc.)" 
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1E3A8A] font-[Inter]"
+                          />
+                        </FormControl>
+                        
+                        {isUploading && (
+                          <div className="w-full bg-gray-200 rounded-full h-2.5 mt-2">
+                            <div 
+                              className="bg-red-600 h-2.5 rounded-full transition-all duration-300 ease-in-out" 
+                              style={{ width: `${uploadProgress}%` }}
+                            ></div>
+                          </div>
+                        )}
+                        
+                        {field.value && field.value.startsWith("http") && !field.value.includes("youtube.com") && !field.value.includes("vimeo.com") && (
+                          <div className="mt-4 border border-gray-300 rounded-lg p-2 bg-gray-100">
+                            <video 
+                              src={field.value} 
+                              controls 
+                              className="max-w-full h-auto rounded"
+                              style={{ maxHeight: "200px" }}
+                            >
+                              Votre navigateur ne prend pas en charge la lecture de vidéos.
+                            </video>
+                          </div>
+                        )}
+                      </div>
+                    </FormItem>
+                  )}
+                />
+              </>
             )}
             
             {/* Audio Content Fields */}
