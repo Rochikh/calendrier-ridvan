@@ -59,18 +59,45 @@ export class DatabaseStorage implements IStorage {
   }
   
   async updateSettings(updatedSettings: Partial<InsertSettings>): Promise<Settings> {
-    const now = new Date().toISOString();
-    const [setting] = await db.select().from(settings);
-    
-    if (setting) {
-      const [updated] = await db
-        .update(settings)
-        .set({ ...updatedSettings, updatedAt: now })
-        .where(eq(settings.id, setting.id))
-        .returning();
-      return updated;
-    } else {
-      return this.initializeSettings();
+    try {
+      console.log("💾 [Storage] updateSettings - Starting update with data:", updatedSettings);
+      const now = new Date().toISOString();
+      
+      console.log("💾 [Storage] updateSettings - Checking if settings exist");
+      let setting;
+      try {
+        [setting] = await db.select().from(settings);
+        console.log("💾 [Storage] updateSettings - Settings found:", setting ? "Yes" : "No");
+      } catch (selectError) {
+        console.error("❌ [Storage] updateSettings - Error selecting settings:", selectError);
+        throw new Error(`Database select error: ${(selectError as Error).message}`);
+      }
+      
+      if (setting) {
+        console.log(`💾 [Storage] updateSettings - Updating existing settings with ID ${setting.id}`);
+        try {
+          const updateQuery = db
+            .update(settings)
+            .set({ ...updatedSettings, updatedAt: now })
+            .where(eq(settings.id, setting.id))
+            .returning();
+          
+          console.log("💾 [Storage] updateSettings - Generated SQL:", updateQuery.toSQL());
+          
+          const [updated] = await updateQuery;
+          console.log("💾 [Storage] updateSettings - Update successful:", updated);
+          return updated;
+        } catch (updateError) {
+          console.error("❌ [Storage] updateSettings - Error updating settings:", updateError);
+          throw new Error(`Database update error: ${(updateError as Error).message}`);
+        }
+      } else {
+        console.log("💾 [Storage] updateSettings - No settings found, initializing...");
+        return this.initializeSettings();
+      }
+    } catch (error) {
+      console.error("❌ [Storage] updateSettings - Unhandled error:", error);
+      throw error; // Propagate to caller
     }
   }
   
@@ -119,31 +146,71 @@ export class DatabaseStorage implements IStorage {
   }
   
   async updateContent(day: number, contentData: Partial<InsertContent>): Promise<Content> {
-    const now = new Date().toISOString();
-    const [existingContent] = await db
-      .select()
-      .from(content)
-      .where(eq(content.day, day));
-    
-    if (existingContent) {
-      const [updated] = await db
-        .update(content)
-        .set({ ...contentData, updatedAt: now })
-        .where(eq(content.id, existingContent.id))
-        .returning();
-      return updated;
-    } else {
-      const [newContent] = await db
-        .insert(content)
-        .values({ 
-          day, 
-          title: contentData.title || `Day ${day}`, 
-          type: contentData.type || "text", 
-          content: contentData.content || { text: "" }, 
-          updatedAt: now 
-        })
-        .returning();
-      return newContent;
+    try {
+      console.log(`💾 [Storage] updateContent - Starting update for day ${day} with data:`, contentData);
+      const now = new Date().toISOString();
+      
+      console.log(`💾 [Storage] updateContent - Checking if content exists for day ${day}`);
+      let existingContent;
+      try {
+        const selectQuery = db
+          .select()
+          .from(content)
+          .where(eq(content.day, day));
+          
+        console.log("💾 [Storage] updateContent - Generated SELECT SQL:", selectQuery.toSQL());
+        [existingContent] = await selectQuery;
+        console.log(`💾 [Storage] updateContent - Content found for day ${day}:`, existingContent ? "Yes" : "No");
+      } catch (selectError) {
+        console.error(`❌ [Storage] updateContent - Error selecting content for day ${day}:`, selectError);
+        throw new Error(`Database select error: ${(selectError as Error).message}`);
+      }
+      
+      if (existingContent) {
+        console.log(`💾 [Storage] updateContent - Updating existing content for day ${day} with ID ${existingContent.id}`);
+        try {
+          const updateQuery = db
+            .update(content)
+            .set({ ...contentData, updatedAt: now })
+            .where(eq(content.id, existingContent.id))
+            .returning();
+            
+          console.log("💾 [Storage] updateContent - Generated UPDATE SQL:", updateQuery.toSQL());
+          
+          const [updated] = await updateQuery;
+          console.log(`💾 [Storage] updateContent - Update successful for day ${day}:`, updated);
+          return updated;
+        } catch (updateError) {
+          console.error(`❌ [Storage] updateContent - Error updating content for day ${day}:`, updateError);
+          throw new Error(`Database update error: ${(updateError as Error).message}`);
+        }
+      } else {
+        console.log(`💾 [Storage] updateContent - No content found for day ${day}, creating new entry`);
+        try {
+          const insertQuery = db
+            .insert(content)
+            .values({ 
+              day, 
+              title: contentData.title || `Day ${day}`, 
+              type: contentData.type || "text", 
+              content: contentData.content || { text: "" }, 
+              updatedAt: now 
+            })
+            .returning();
+            
+          console.log("💾 [Storage] updateContent - Generated INSERT SQL:", insertQuery.toSQL());
+          
+          const [newContent] = await insertQuery;
+          console.log(`💾 [Storage] updateContent - Insert successful for day ${day}:`, newContent);
+          return newContent;
+        } catch (insertError) {
+          console.error(`❌ [Storage] updateContent - Error inserting content for day ${day}:`, insertError);
+          throw new Error(`Database insert error: ${(insertError as Error).message}`);
+        }
+      }
+    } catch (error) {
+      console.error(`❌ [Storage] updateContent - Unhandled error for day ${day}:`, error);
+      throw error; // Propagate to caller
     }
   }
   

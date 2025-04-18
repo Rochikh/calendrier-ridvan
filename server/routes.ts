@@ -266,7 +266,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           code: dbError.code || "UNKNOWN"
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error(`❌ CONTENT UPDATE ERROR for day ${day}:`, error);
       
       if (error instanceof ZodError) {
@@ -277,10 +277,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      console.error("⚠️ Unexpected error type:", error.constructor.name);
+      console.error("⚠️ Unexpected error type:", error.constructor?.name || "Unknown");
       return res.status(500).json({ 
         message: "Error updating content",
-        error: error.message
+        error: error.message || "Unknown error"
       });
     }
   });
