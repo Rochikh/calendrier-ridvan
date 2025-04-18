@@ -4,3 +4,5 @@ dist
 server/public
 vite.config.ts.*
 *.tar.gz
+# Ignore data directory for file storage
+data/

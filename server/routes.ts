@@ -44,6 +44,17 @@ const requireAuth = (req: Request, res: Response, next: NextFunction) => {
 };
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Affiche les informations sur l'environnement
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  const storageType = isDevelopment ? 'PostgreSQL' : 'File';
+  console.log(`
+🌟 ====================================== 🌟
+🔧 Environment: ${process.env.NODE_ENV || 'production'}
+💾 Storage Type: ${storageType}
+📁 Current Directory: ${process.cwd()}
+🌟 ====================================== 🌟
+  `);
+  
   // Create and configure PostgreSQL session store
   const PgSession = connectPgSimple(session);
 
@@ -301,6 +312,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error(`Delete content error for day ${req.params.day}:`, error);
       return res.status(500).json({ message: "Error deleting content" });
     }
+  });
+
+  // Diagnostic route to check storage type
+  app.get("/api/diagnostic", (req, res) => {
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    const storageType = isDevelopment ? 'PostgreSQL' : 'File';
+    return res.status(200).json({
+      environment: process.env.NODE_ENV || 'production',
+      storageType,
+      workingDirectory: process.cwd(),
+      timestamp: new Date().toISOString()
+    });
   });
 
   // Initialize database on startup
