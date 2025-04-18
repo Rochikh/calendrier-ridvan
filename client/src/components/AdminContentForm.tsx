@@ -254,20 +254,31 @@ export default function AdminContentForm({ totalDays, initialDay = 1 }: AdminCon
       }
       
       console.log("Sending request to PUT /api/content/" + selectedDay);
-      console.log("Request payload:", {
+      const payload = {
         title: data.title,
         type: data.type,
         content: contentData
-      });
+      };
+      console.log("Request payload:", payload);
       
       try {
-        // Utiliser la fonction API pour mettre à jour le contenu
-        const responseData = await updateContent(selectedDay, {
-          title: data.title,
-          type: data.type,
-          content: contentData
+        // Utiliser fetch directement pour éviter toute abstraction potentiellement problématique
+        const response = await fetch(`/api/content/${selectedDay}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+          credentials: 'include'
         });
         
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("Server response error:", response.status, errorText);
+          throw new Error(`API error: ${response.status} - ${errorText}`);
+        }
+        
+        const responseData = await response.json();
         console.log("API response:", responseData);
         return responseData;
       } catch (error) {
