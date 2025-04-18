@@ -24,9 +24,10 @@ export default function Home() {
   // Update current content when content is loaded
   useEffect(() => {
     if (content) {
+      console.log("Content loaded for day", currentDay, ":", content);
       setCurrentContent(content);
     }
-  }, [content]);
+  }, [content, currentDay]);
 
   // Handle star click
   const handleStarClick = (day: number) => {
@@ -145,7 +146,7 @@ export default function Home() {
       )}
 
       {/* Add twinkle animation */}
-      <style jsx global>{`
+      <style>{`
         @keyframes twinkle {
           0% { opacity: 0.3; }
           100% { opacity: 1; }
