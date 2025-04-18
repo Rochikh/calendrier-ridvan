@@ -148,9 +148,9 @@ export default function Home() {
         
         {/* Footer with Admin Link */}
         <footer className="relative z-10 p-4 text-center">
-          <Link href="/login" className="text-white opacity-60 hover:opacity-100 text-sm font-[Inter] transition-opacity duration-300">
+          <a href="/admin" className="text-white opacity-60 hover:opacity-100 text-sm font-[Inter] transition-opacity duration-300">
             Administrator Access
-          </Link>
+          </a>
         </footer>
       </div>
       

@@ -4,9 +4,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/Home";
-import Login from "@/pages/Login";
-import Admin from "@/pages/Admin";
-import AdminSettings from "@/pages/AdminSettings";
+import SimpleAdmin from "@/pages/SimpleAdmin";
 import { useEffect } from "react";
 import { AuthProvider } from "./contexts/AuthContext";
 
@@ -29,9 +27,7 @@ function RouterWithPathnameUpdater() {
   return (
     <Switch>
       <Route path="/" component={Home} />
-      <Route path="/login" component={Login} />
-      <Route path="/admin" component={Admin} />
-      <Route path="/admin/settings" component={AdminSettings} />
+      <Route path="/admin" component={SimpleAdmin} />
       {/* Fallback to 404 */}
       <Route component={NotFound} />
     </Switch>
