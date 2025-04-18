@@ -600,11 +600,70 @@ export default function AdminContentForm({ totalDays, initialDay = 1 }: AdminCon
         <div className="mb-4 bg-yellow-100 p-4 rounded-lg">
           <h3 className="font-bold mb-2">Créer le contenu pour le jour 6</h3>
           <p className="mb-3">Ce bouton va créer directement le contenu pour le jour 6 avec une image</p>
+          
+          {/* Bouton avec URL hardcodée */}
+          <Button 
+            onClick={async () => {
+              try {
+                const response = await fetch(`/api/content/6`, {
+                  method: 'PUT',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    title: "Test image day 6",
+                    type: "image",
+                    content: {
+                      // Utiliser une URL d'image connue fonctionnelle
+                      imageUrl: "https://placekitten.com/800/600",
+                      imageCaption: "Test image caption"
+                    }
+                  }),
+                  credentials: 'include'
+                });
+                
+                if (!response.ok) {
+                  const errorText = await response.text();
+                  console.error(`Error ${response.status}: ${errorText}`);
+                  toast({
+                    title: "Échec de la création",
+                    description: `Erreur ${response.status}: ${errorText}`,
+                    variant: "destructive"
+                  });
+                  return;
+                }
+                
+                const result = await response.json();
+                console.log("SUCCESS: Day 6 content created with fixed URL:", result);
+                
+                toast({
+                  title: "Contenu jour 6 créé",
+                  description: "Le contenu pour le jour 6 a été créé avec succès avec une image de test",
+                });
+                
+                // Reload content
+                queryClient.invalidateQueries({ queryKey: ["/api/content", 6] });
+                queryClient.invalidateQueries({ queryKey: ["/api/content"] });
+              } catch (error) {
+                console.error("CREATE DAY 6 ERROR:", error);
+                toast({
+                  title: "Erreur",
+                  description: "Une erreur inattendue s'est produite",
+                  variant: "destructive"
+                });
+              }
+            }}
+            className="bg-blue-600 hover:bg-blue-700 mb-2"
+          >
+            Créer contenu jour 6 avec image de test
+          </Button>
+          
+          <p className="text-sm mt-3">Ou avec l'image que vous avez uploadée :</p>
           <Button 
             onClick={createDay6Content}
-            className="bg-blue-600 hover:bg-blue-700"
+            className="bg-blue-600 hover:bg-blue-700 mt-2"
           >
-            Créer contenu jour 6
+            Créer contenu jour 6 avec image uploadée
           </Button>
         </div>
         
