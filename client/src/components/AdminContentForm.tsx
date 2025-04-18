@@ -311,7 +311,9 @@ export default function AdminContentForm({ totalDays, initialDay = 1 }: AdminCon
   };
   
   // Handle form submission
-  const onSubmit = (data: FormValues) => {
+  const onSubmit = async (data: FormValues) => {
+    console.log("====================================================");
+    console.log("FORM SUBMIT CALLED");
     console.log("Submitting form with data:", data);
     console.log("Selected day:", selectedDay);
     console.log("Form errors:", form.formState.errors);
@@ -329,10 +331,98 @@ export default function AdminContentForm({ totalDays, initialDay = 1 }: AdminCon
         console.log("Fixed video URL:", data.videoUrl);
       }
       
-      updateContentMutation.mutate(data);
-      console.log("Mutation called successfully");
+      // Essayons une approche encore plus directe avec fetch
+      try {
+        // Créer le payload en fonction du type
+        let contentData: any = {};
+        
+        switch (data.type) {
+          case "text":
+            contentData = { text: data.text };
+            break;
+          case "image":
+            contentData = { 
+              imageUrl: data.imageUrl,
+              imageCaption: data.imageCaption
+            };
+            break;
+          case "video":
+            contentData = { videoUrl: data.videoUrl };
+            break;
+          case "audio":
+            contentData = { audioUrl: data.audioUrl };
+            break;
+          case "citation":
+            contentData = { 
+              citationText: data.citationText,
+              citationSource: data.citationSource
+            };
+            break;
+          case "link":
+            contentData = { 
+              linkUrl: data.linkUrl,
+              linkDescription: data.linkDescription
+            };
+            break;
+        }
+        
+        const payload = {
+          title: data.title,
+          type: data.type,
+          content: contentData
+        };
+        
+        console.log("ATTEMPT DIRECT FETCH - PUT /api/content/" + selectedDay);
+        console.log("With payload:", JSON.stringify(payload, null, 2));
+        
+        const response = await fetch(`/api/content/${selectedDay}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+          credentials: 'include'
+        });
+        
+        console.log("DIRECT FETCH RESPONSE:", response.status);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`Error ${response.status}: ${errorText}`);
+          toast({
+            title: "Échec de la sauvegarde",
+            description: `Erreur ${response.status}: ${errorText}`,
+            variant: "destructive"
+          });
+          return;
+        }
+        
+        const result = await response.json();
+        console.log("SUCCESS: Content saved:", result);
+        
+        toast({
+          title: "Contenu sauvegardé",
+          description: `Le contenu pour le jour ${selectedDay} a été mis à jour`,
+        });
+        
+        // Reload content
+        queryClient.invalidateQueries({ queryKey: ["/api/content", selectedDay] });
+        queryClient.invalidateQueries({ queryKey: ["/api/content"] });
+      } catch (fetchError) {
+        console.error("DIRECT FETCH ERROR:", fetchError);
+        toast({
+          title: "Échec de la connexion",
+          description: "Erreur lors de la communication avec le serveur",
+          variant: "destructive"
+        });
+      }
     } catch (error) {
-      console.error("Error during mutation:", error);
+      console.error("Error during submission:", error);
+      toast({
+        title: "Erreur",
+        description: "Une erreur inattendue s'est produite",
+        variant: "destructive"
+      });
     }
   };
   
