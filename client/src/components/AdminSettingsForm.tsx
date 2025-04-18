@@ -107,9 +107,9 @@ export default function AdminSettingsForm({ settings }: AdminSettingsFormProps) 
   
   // Sync color inputs with hex inputs
   const [colorInputs, setColorInputs] = useState({
-    titleColor: form.getValues().titleColor,
-    starColor: form.getValues().starColor,
-    starBorderColor: form.getValues().starBorderColor
+    titleColor: settings?.titleColor || defaultValues.titleColor,
+    starColor: settings?.starColor || defaultValues.starColor,
+    starBorderColor: settings?.starBorderColor || defaultValues.starBorderColor
   });
   
   const handleColorChange = (colorType: string, value: string) => {
