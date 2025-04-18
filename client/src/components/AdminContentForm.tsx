@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -6,8 +6,6 @@ import { z } from "zod";
 import { Content, ContentType, contentTypeSchema } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { uploadFile, UploadResponse, updateContent } from "@/lib/api";
-import { UploadCloud, Image, Video, Loader2 } from "lucide-react";
 import { 
   Card, CardContent, 
   Form, FormControl, FormField, FormItem, FormLabel,
@@ -15,26 +13,19 @@ import {
   Button
 } from "@/components/ui";
 
-// Fonction d'aide pour valider les URLs
-const validateUrl = (url: string) => {
-  if (!url) return true;
-  // Accepter les URLs relatives ou absolues
-  return url.startsWith('/') || url.startsWith('http');
-};
-
 // Content form schema
 const formSchema = z.object({
   title: z.string().min(1, "Title is required"),
   type: contentTypeSchema,
   // Content fields - conditionally required based on type
   text: z.string().optional().or(z.literal("")),
-  imageUrl: z.string().refine(validateUrl, "URL invalide").optional().or(z.literal("")),
+  imageUrl: z.string().url("URL invalide").optional().or(z.literal("")),
   imageCaption: z.string().optional().or(z.literal("")),
-  videoUrl: z.string().refine(validateUrl, "URL invalide").optional().or(z.literal("")),
-  audioUrl: z.string().refine(validateUrl, "URL invalide").optional().or(z.literal("")),
+  videoUrl: z.string().url("URL invalide").optional().or(z.literal("")),
+  audioUrl: z.string().url("URL invalide").optional().or(z.literal("")),
   citationText: z.string().optional().or(z.literal("")),
   citationSource: z.string().optional().or(z.literal("")),
-  linkUrl: z.string().refine(validateUrl, "URL invalide").optional().or(z.literal("")),
+  linkUrl: z.string().url("URL invalide").optional().or(z.literal("")),
   linkDescription: z.string().optional().or(z.literal(""))
 }).superRefine((data, ctx) => {
   // Validate required fields based on type
@@ -254,28 +245,28 @@ export default function AdminContentForm({ totalDays, initialDay = 1 }: AdminCon
       }
       
       console.log("Sending request to PUT /api/content/" + selectedDay);
-      const payload = {
+      console.log("Request payload:", {
         title: data.title,
         type: data.type,
         content: contentData
-      };
-      console.log("Request payload:", payload);
+      });
       
       try {
-        // Utiliser fetch directement pour éviter toute abstraction potentiellement problématique
         const response = await fetch(`/api/content/${selectedDay}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(payload),
+          body: JSON.stringify({
+            title: data.title,
+            type: data.type,
+            content: contentData
+          }),
           credentials: 'include'
         });
         
         if (!response.ok) {
-          const errorText = await response.text();
-          console.error("Server response error:", response.status, errorText);
-          throw new Error(`API error: ${response.status} - ${errorText}`);
+          throw new Error(`API error: ${response.status}`);
         }
         
         const responseData = await response.json();
@@ -311,121 +302,13 @@ export default function AdminContentForm({ totalDays, initialDay = 1 }: AdminCon
   };
   
   // Handle form submission
-  const onSubmit = async (data: FormValues) => {
-    console.log("====================================================");
-    console.log("FORM SUBMIT CALLED");
+  const onSubmit = (data: FormValues) => {
     console.log("Submitting form with data:", data);
-    console.log("Selected day:", selectedDay);
-    console.log("Form errors:", form.formState.errors);
-    console.log("Is form valid:", form.formState.isValid);
-    
     try {
-      // Créons une copie profonde de l'objet data pour éviter toute modification imprévue
-      const formData = JSON.parse(JSON.stringify(data));
-      
-      // NE PAS modifier les URLs manuellement, elles doivent déjà être valides depuis l'upload
-      console.log("Image URL avant envoi:", formData.imageUrl);
-      
-      // Essayons une approche encore plus directe avec fetch
-      try {
-        // Créer le payload en fonction du type
-        let contentData: any = {};
-        
-        switch (data.type) {
-          case "text":
-            contentData = { text: data.text };
-            break;
-          case "image":
-            // Pour le type image, récupérons d'abord la valeur actuelle directement du formulaire
-            const imageUrl = form.getValues("imageUrl");
-            console.log("Image URL from form.getValues():", imageUrl);
-            console.log("Image URL from data param:", data.imageUrl);
-            
-            // Utilisons la valeur directement récupérée du formulaire pour plus de sûreté
-            contentData = { 
-              imageUrl: imageUrl || data.imageUrl,
-              imageCaption: data.imageCaption
-            };
-            
-            console.log("Final image content data:", contentData);
-            break;
-          case "video":
-            contentData = { videoUrl: data.videoUrl };
-            break;
-          case "audio":
-            contentData = { audioUrl: data.audioUrl };
-            break;
-          case "citation":
-            contentData = { 
-              citationText: data.citationText,
-              citationSource: data.citationSource
-            };
-            break;
-          case "link":
-            contentData = { 
-              linkUrl: data.linkUrl,
-              linkDescription: data.linkDescription
-            };
-            break;
-        }
-        
-        const payload = {
-          title: data.title,
-          type: data.type,
-          content: contentData
-        };
-        
-        console.log("ATTEMPT DIRECT FETCH - PUT /api/content/" + selectedDay);
-        console.log("With payload:", JSON.stringify(payload, null, 2));
-        
-        const response = await fetch(`/api/content/${selectedDay}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(payload),
-          credentials: 'include'
-        });
-        
-        console.log("DIRECT FETCH RESPONSE:", response.status);
-        
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error(`Error ${response.status}: ${errorText}`);
-          toast({
-            title: "Échec de la sauvegarde",
-            description: `Erreur ${response.status}: ${errorText}`,
-            variant: "destructive"
-          });
-          return;
-        }
-        
-        const result = await response.json();
-        console.log("SUCCESS: Content saved:", result);
-        
-        toast({
-          title: "Contenu sauvegardé",
-          description: `Le contenu pour le jour ${selectedDay} a été mis à jour`,
-        });
-        
-        // Reload content
-        queryClient.invalidateQueries({ queryKey: ["/api/content", selectedDay] });
-        queryClient.invalidateQueries({ queryKey: ["/api/content"] });
-      } catch (fetchError) {
-        console.error("DIRECT FETCH ERROR:", fetchError);
-        toast({
-          title: "Échec de la connexion",
-          description: "Erreur lors de la communication avec le serveur",
-          variant: "destructive"
-        });
-      }
+      updateContentMutation.mutate(data);
+      console.log("Mutation called successfully");
     } catch (error) {
-      console.error("Error during submission:", error);
-      toast({
-        title: "Erreur",
-        description: "Une erreur inattendue s'est produite",
-        variant: "destructive"
-      });
+      console.error("Error during mutation:", error);
     }
   };
   
@@ -434,109 +317,6 @@ export default function AdminContentForm({ totalDays, initialDay = 1 }: AdminCon
   
   // Handle image preview
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  
-  // Upload states
-  const [isUploading, setIsUploading] = useState<boolean>(false);
-  const [uploadProgress, setUploadProgress] = useState<number>(0);
-  
-  // File input references
-  const imageFileInputRef = useRef<HTMLInputElement>(null);
-  const videoFileInputRef = useRef<HTMLInputElement>(null);
-  
-  // File upload handler
-  const handleFileUpload = async (file: File, type: "image" | "video") => {
-    if (!file) return;
-    
-    try {
-      setIsUploading(true);
-      setUploadProgress(10); // Start progress
-      
-      // Upload file to server
-      const uploadResult = await uploadFile(file);
-      
-      setUploadProgress(100); // Complete progress
-      
-      console.log("File upload successful, fileUrl received:", uploadResult.fileUrl);
-      
-      // Update form based on file type
-      if (type === "image") {
-        // Force l'URL exacte telle que reçue du serveur
-        const fileUrl = uploadResult.fileUrl;
-        console.log("Setting image URL in form:", fileUrl);
-        
-        // Mettre à jour le champ du formulaire avec l'URL exacte
-        form.setValue("imageUrl", fileUrl, { 
-          shouldValidate: true,
-          shouldDirty: true,
-          shouldTouch: true
-        });
-        
-        // Force la mise à jour de la prévisualisation
-        setImagePreview(fileUrl);
-        
-        // Vérifier que la valeur est bien enregistrée dans le formulaire
-        setTimeout(() => {
-          const formValue = form.getValues("imageUrl");
-          console.log("Form imageUrl value after update:", formValue);
-          if (formValue !== fileUrl) {
-            console.warn("WARNING: Form value doesn't match uploaded URL");
-            // Réessayer de définir la valeur
-            form.setValue("imageUrl", fileUrl, { shouldValidate: true });
-          }
-        }, 100);
-      } else if (type === "video") {
-        const fileUrl = uploadResult.fileUrl;
-        console.log("Setting video URL in form:", fileUrl);
-        form.setValue("videoUrl", fileUrl, { 
-          shouldValidate: true,
-          shouldDirty: true,
-          shouldTouch: true
-        });
-      }
-      
-      toast({
-        title: "Fichier téléchargé",
-        description: `Le fichier ${uploadResult.originalName} a été téléchargé avec succès.`,
-      });
-    } catch (error) {
-      console.error("File upload error:", error);
-      toast({
-        title: "Échec du téléchargement",
-        description: error instanceof Error ? error.message : "Une erreur s'est produite lors du téléchargement du fichier",
-        variant: "destructive"
-      });
-    } finally {
-      setIsUploading(false);
-      setUploadProgress(0);
-    }
-  };
-  
-  // File input handlers
-  const triggerImageFileInput = () => {
-    if (imageFileInputRef.current) {
-      imageFileInputRef.current.click();
-    }
-  };
-  
-  const handleImageFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      handleFileUpload(file, "image");
-    }
-  };
-  
-  const triggerVideoFileInput = () => {
-    if (videoFileInputRef.current) {
-      videoFileInputRef.current.click();
-    }
-  };
-  
-  const handleVideoFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      handleFileUpload(file, "video");
-    }
-  };
   
   // Update selectedDay when initialDay prop changes
   useEffect(() => {
@@ -554,151 +334,10 @@ export default function AdminContentForm({ totalDays, initialDay = 1 }: AdminCon
     }
   }, [form.watch("imageUrl"), contentType, form]);
   
-  // Fonction directe pour créer le contenu pour le jour 6
-  const createDay6Content = async () => {
-    console.log("====================================================");
-    console.log("CREATING DAY 6 CONTENT DIRECTLY");
-    
-    try {
-      // Récupérer l'URL de l'image uploadée
-      const imageUrl = form.getValues("imageUrl");
-      
-      if (!imageUrl || imageUrl.trim() === "") {
-        toast({
-          title: "Image manquante",
-          description: "Veuillez d'abord uploader une image en utilisant le bouton 'Upload Image'",
-          variant: "destructive"
-        });
-        return;
-      }
-      
-      console.log("Using image URL:", imageUrl);
-      
-      const response = await fetch(`/api/content/6`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          title: "Test image day 6",
-          type: "image",
-          content: {
-            imageUrl: imageUrl,
-            imageCaption: "Test image caption"
-          }
-        }),
-        credentials: 'include'
-      });
-      
-      console.log("CREATE DAY 6 RESPONSE:", response.status);
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`Error ${response.status}: ${errorText}`);
-        toast({
-          title: "Échec de la création",
-          description: `Erreur ${response.status}: ${errorText}`,
-          variant: "destructive"
-        });
-        return;
-      }
-      
-      const result = await response.json();
-      console.log("SUCCESS: Day 6 content created:", result);
-      
-      toast({
-        title: "Contenu jour 6 créé",
-        description: "Le contenu pour le jour 6 a été créé avec succès avec l'image uploadée",
-      });
-      
-      // Reload content
-      queryClient.invalidateQueries({ queryKey: ["/api/content", 6] });
-      queryClient.invalidateQueries({ queryKey: ["/api/content"] });
-    } catch (error) {
-      console.error("CREATE DAY 6 ERROR:", error);
-      toast({
-        title: "Erreur",
-        description: "Une erreur inattendue s'est produite",
-        variant: "destructive"
-      });
-    }
-  };
-
   return (
     <Card>
       <CardContent className="p-6">
         <h2 className="text-xl font-[Cinzel] text-[#1E3A8A] mb-6">Content Management</h2>
-        
-        {/* SPECIAL BUTTON FOR DAY 6 */}
-        <div className="mb-4 bg-yellow-100 p-4 rounded-lg">
-          <h3 className="font-bold mb-2">Créer le contenu pour le jour 6</h3>
-          <p className="mb-3">Ce bouton va créer directement le contenu pour le jour 6 avec une image</p>
-          
-          {/* Bouton avec URL hardcodée */}
-          <Button 
-            onClick={async () => {
-              try {
-                const response = await fetch(`/api/content/6`, {
-                  method: 'PUT',
-                  headers: {
-                    'Content-Type': 'application/json',
-                  },
-                  body: JSON.stringify({
-                    title: "Test image day 6",
-                    type: "image",
-                    content: {
-                      // Utiliser une URL d'image connue fonctionnelle
-                      imageUrl: "https://placekitten.com/800/600",
-                      imageCaption: "Test image caption"
-                    }
-                  }),
-                  credentials: 'include'
-                });
-                
-                if (!response.ok) {
-                  const errorText = await response.text();
-                  console.error(`Error ${response.status}: ${errorText}`);
-                  toast({
-                    title: "Échec de la création",
-                    description: `Erreur ${response.status}: ${errorText}`,
-                    variant: "destructive"
-                  });
-                  return;
-                }
-                
-                const result = await response.json();
-                console.log("SUCCESS: Day 6 content created with fixed URL:", result);
-                
-                toast({
-                  title: "Contenu jour 6 créé",
-                  description: "Le contenu pour le jour 6 a été créé avec succès avec une image de test",
-                });
-                
-                // Reload content
-                queryClient.invalidateQueries({ queryKey: ["/api/content", 6] });
-                queryClient.invalidateQueries({ queryKey: ["/api/content"] });
-              } catch (error) {
-                console.error("CREATE DAY 6 ERROR:", error);
-                toast({
-                  title: "Erreur",
-                  description: "Une erreur inattendue s'est produite",
-                  variant: "destructive"
-                });
-              }
-            }}
-            className="bg-blue-600 hover:bg-blue-700 mb-2"
-          >
-            Créer contenu jour 6 avec image de test
-          </Button>
-          
-          <p className="text-sm mt-3">Ou avec l'image que vous avez uploadée :</p>
-          <Button 
-            onClick={createDay6Content}
-            className="bg-blue-600 hover:bg-blue-700 mt-2"
-          >
-            Créer contenu jour 6 avec image uploadée
-          </Button>
-        </div>
         
         {/* Day Selector */}
         <div className="mb-6">
@@ -790,62 +429,20 @@ export default function AdminContentForm({ totalDays, initialDay = 1 }: AdminCon
             {/* Image Content Fields */}
             {contentType === "image" && (
               <>
-                {/* Hidden input for file upload */}
-                <input 
-                  type="file" 
-                  ref={imageFileInputRef}
-                  onChange={handleImageFileChange}
-                  accept="image/*"
-                  className="hidden"
-                />
-                
                 <FormField
                   control={form.control}
                   name="imageUrl"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="block text-gray-700 font-[Inter] mb-2">Image</FormLabel>
-                      <div className="space-y-3">
-                        <div className="flex items-center gap-3">
-                          <Button 
-                            type="button" 
-                            onClick={triggerImageFileInput}
-                            disabled={isUploading}
-                            className="inline-flex items-center bg-blue-500 hover:bg-blue-600 gap-2"
-                          >
-                            {isUploading ? (
-                              <>
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                                <span>Uploading...</span>
-                              </>
-                            ) : (
-                              <>
-                                <UploadCloud className="h-4 w-4" />
-                                <span>Upload Image</span>
-                              </>
-                            )}
-                          </Button>
-                          <span className="text-sm text-gray-500">or</span>
-                        </div>
-                        
-                        <FormControl>
-                          <Input 
-                            {...field} 
-                            type="url" 
-                            placeholder="Enter image URL" 
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1E3A8A] font-[Inter]"
-                          />
-                        </FormControl>
-                        
-                        {isUploading && (
-                          <div className="w-full bg-gray-200 rounded-full h-2.5 mt-2">
-                            <div 
-                              className="bg-blue-600 h-2.5 rounded-full transition-all duration-300 ease-in-out" 
-                              style={{ width: `${uploadProgress}%` }}
-                            ></div>
-                          </div>
-                        )}
-                      </div>
+                      <FormLabel className="block text-gray-700 font-[Inter] mb-2">Image URL</FormLabel>
+                      <FormControl>
+                        <Input 
+                          {...field} 
+                          type="url" 
+                          placeholder="Enter image URL" 
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1E3A8A] font-[Inter]"
+                        />
+                      </FormControl>
                     </FormItem>
                   )}
                 />
@@ -882,80 +479,23 @@ export default function AdminContentForm({ totalDays, initialDay = 1 }: AdminCon
             
             {/* Video Content Fields */}
             {contentType === "video" && (
-              <>
-                {/* Hidden input for file upload */}
-                <input 
-                  type="file" 
-                  ref={videoFileInputRef}
-                  onChange={handleVideoFileChange}
-                  accept="video/*"
-                  className="hidden"
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="videoUrl"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="block text-gray-700 font-[Inter] mb-2">Video</FormLabel>
-                      <div className="space-y-3">
-                        <div className="flex items-center gap-3">
-                          <Button 
-                            type="button" 
-                            onClick={triggerVideoFileInput}
-                            disabled={isUploading}
-                            className="inline-flex items-center bg-red-500 hover:bg-red-600 gap-2"
-                          >
-                            {isUploading ? (
-                              <>
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                                <span>Uploading...</span>
-                              </>
-                            ) : (
-                              <>
-                                <Video className="h-4 w-4" />
-                                <span>Upload Video</span>
-                              </>
-                            )}
-                          </Button>
-                          <span className="text-sm text-gray-500">ou indiquez une URL de vidéo (YouTube, Vimeo...)</span>
-                        </div>
-                        
-                        <FormControl>
-                          <Input 
-                            {...field} 
-                            type="url" 
-                            placeholder="Enter video URL (YouTube, Vimeo, etc.)" 
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1E3A8A] font-[Inter]"
-                          />
-                        </FormControl>
-                        
-                        {isUploading && (
-                          <div className="w-full bg-gray-200 rounded-full h-2.5 mt-2">
-                            <div 
-                              className="bg-red-600 h-2.5 rounded-full transition-all duration-300 ease-in-out" 
-                              style={{ width: `${uploadProgress}%` }}
-                            ></div>
-                          </div>
-                        )}
-                        
-                        {field.value && field.value.startsWith("http") && !field.value.includes("youtube.com") && !field.value.includes("vimeo.com") && (
-                          <div className="mt-4 border border-gray-300 rounded-lg p-2 bg-gray-100">
-                            <video 
-                              src={field.value} 
-                              controls 
-                              className="max-w-full h-auto rounded"
-                              style={{ maxHeight: "200px" }}
-                            >
-                              Votre navigateur ne prend pas en charge la lecture de vidéos.
-                            </video>
-                          </div>
-                        )}
-                      </div>
-                    </FormItem>
-                  )}
-                />
-              </>
+              <FormField
+                control={form.control}
+                name="videoUrl"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="block text-gray-700 font-[Inter] mb-2">Video URL</FormLabel>
+                    <FormControl>
+                      <Input 
+                        {...field} 
+                        type="url" 
+                        placeholder="Enter video URL (YouTube, Vimeo, etc.)" 
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1E3A8A] font-[Inter]"
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
             )}
             
             {/* Audio Content Fields */}

@@ -118,50 +118,30 @@ export class DatabaseStorage implements IStorage {
   }
   
   async updateContent(day: number, contentData: Partial<InsertContent>): Promise<Content> {
-    console.log(`Storage: Updating content for day ${day} with data:`, JSON.stringify(contentData, null, 2));
-    
     const now = new Date().toISOString();
     const [existingContent] = await db
       .select()
       .from(content)
       .where(eq(content.day, day));
     
-    console.log(`Existing content for day ${day}:`, existingContent || 'None');
-    
     if (existingContent) {
-      console.log(`Updating existing content with id ${existingContent.id}`);
-      const query = db
+      const [updated] = await db
         .update(content)
         .set({ ...contentData, updatedAt: now })
         .where(eq(content.id, existingContent.id))
         .returning();
-      
-      console.log("Update SQL query:", query.toSQL());
-      
-      const [updated] = await query;
-      console.log(`Updated content:`, updated);
       return updated;
     } else {
-      console.log(`Creating new content for day ${day}`);
-      const insertData = { 
-        day, 
-        title: contentData.title || `Day ${day}`, 
-        type: contentData.type || "text", 
-        content: contentData.content || { text: "" }, 
-        updatedAt: now 
-      };
-      
-      console.log("Insert data:", insertData);
-      
-      const query = db
+      const [newContent] = await db
         .insert(content)
-        .values(insertData)
+        .values({ 
+          day, 
+          title: contentData.title || `Day ${day}`, 
+          type: contentData.type || "text", 
+          content: contentData.content || { text: "" }, 
+          updatedAt: now 
+        })
         .returning();
-      
-      console.log("Insert SQL query:", query.toSQL());
-      
-      const [newContent] = await query;
-      console.log(`New content created:`, newContent);
       return newContent;
     }
   }

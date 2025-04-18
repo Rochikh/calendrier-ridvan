@@ -2,16 +2,12 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { randomBytes } from "crypto";
-import { contentDataSchema, contentTypeSchema, insertContentSchema, insertSettingsSchema, content } from "@shared/schema";
-import { db } from "./db";
+import { contentDataSchema, contentTypeSchema, insertContentSchema, insertSettingsSchema } from "@shared/schema";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
 import { pool } from "./db";
 import { z } from "zod";
 import { ZodError } from "zod";
-import { upload, handleFileUpload } from "./upload";
-import path from "path";
-import express from "express";
 
 // Extend express-session declarations to include token
 declare module 'express-session' {
@@ -207,10 +203,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid day parameter. Must be between 1 and 30." });
       }
       
-      console.log(`Processing PUT request for content day ${day}`);
-      
       const { title, type, content: contentData } = req.body;
-      console.log("Request body:", JSON.stringify(req.body, null, 2));
       
       // Validate content type
       const validatedType = contentTypeSchema.parse(type);
@@ -218,44 +211,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Validate content data based on type
       contentDataSchema.parse(contentData);
       
-      // Ajout de logs détaillés pour déboguer
-      console.log("Content update request for day:", day);
-      console.log("Title:", title);
-      console.log("Type:", validatedType);
-      console.log("Content data:", JSON.stringify(contentData, null, 2));
-      
-      // Vérifier si le contenu existe déjà pour ce jour
-      let existingContent = await storage.getContent(day);
-      
-      if (!existingContent) {
-        console.log(`No existing content for day ${day}. Creating a new entry.`);
-        
-        // Créer un nouvel enregistrement directement avec la requête SQL
-        const now = new Date().toISOString();
-        
-        const [newContent] = await db
-          .insert(content)
-          .values({
-            day,
-            title: title || `Day ${day}`,
-            type: validatedType,
-            content: contentData,
-            updatedAt: now
-          })
-          .returning();
-          
-        console.log("Created new content:", JSON.stringify(newContent, null, 2));
-        return res.status(201).json(newContent);
-      }
-      
-      // Update content si existant
+      // Update content
       const updatedContent = await storage.updateContent(day, {
         title,
         type: validatedType,
         content: contentData
       });
       
-      console.log("Updated content:", JSON.stringify(updatedContent, null, 2));
       return res.status(200).json(updatedContent);
     } catch (error) {
       console.error(`Update content error for day ${req.params.day}:`, error);
@@ -271,12 +233,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Route pour l'upload de fichiers
-  app.post("/api/upload", requireAuth, upload.single("file"), handleFileUpload);
-  
-  // Servir les fichiers téléchargés statiquement
-  app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
-  
   // Initialize database on startup
   await initializeDatabase();
   

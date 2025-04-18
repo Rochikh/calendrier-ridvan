@@ -1,15 +1,6 @@
 import { apiRequest } from "./queryClient";
 import { Settings, Content } from "@shared/schema";
 
-// Interface pour la réponse d'upload de fichier
-export interface UploadResponse {
-  success: boolean;
-  fileUrl: string;
-  fileType: "image" | "video";
-  originalName: string;
-  size: number;
-}
-
 // Settings API
 export async function getSettings(): Promise<Settings> {
   const response = await apiRequest("GET", "/api/settings", undefined);
@@ -48,26 +39,5 @@ export async function logout(): Promise<void> {
 
 export async function getAuthStatus(): Promise<{ isLoggedIn: boolean }> {
   const response = await apiRequest("GET", "/api/auth/status", undefined);
-  return response.json();
-}
-
-// Fonction d'upload de fichier
-export async function uploadFile(file: File): Promise<UploadResponse> {
-  // Pour l'upload de fichiers, nous devons utiliser FormData et ne pas passer par apiRequest
-  // car apiRequest est configuré pour JSON
-  const formData = new FormData();
-  formData.append("file", file);
-  
-  const response = await fetch("/api/upload", {
-    method: "POST",
-    body: formData,
-    credentials: "include" // Important pour inclure les cookies d'authentification
-  });
-  
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.error || "Failed to upload file");
-  }
-  
   return response.json();
 }
