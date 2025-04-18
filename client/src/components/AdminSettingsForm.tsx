@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -48,20 +48,35 @@ export default function AdminSettingsForm({ settings }: AdminSettingsFormProps) 
   });
   
   // Update settings when props change
-  if (settings && 
-      (settings.totalDays !== form.getValues().totalDays ||
-       settings.titleColor !== form.getValues().titleColor ||
-       settings.starColor !== form.getValues().starColor ||
-       settings.starBorderColor !== form.getValues().starBorderColor ||
-       settings.backgroundImage !== form.getValues().backgroundImage)) {
-    form.reset({
-      totalDays: settings.totalDays,
-      titleColor: settings.titleColor,
-      starColor: settings.starColor,
-      starBorderColor: settings.starBorderColor,
-      backgroundImage: settings.backgroundImage
-    });
-  }
+  // Utiliser useEffect pour éviter le problème de mise à jour pendant le rendu
+  useEffect(() => {
+    if (settings) {
+      const currentValues = form.getValues();
+      
+      if (settings.totalDays !== currentValues.totalDays ||
+          settings.titleColor !== currentValues.titleColor ||
+          settings.starColor !== currentValues.starColor ||
+          settings.starBorderColor !== currentValues.starBorderColor ||
+          settings.backgroundImage !== currentValues.backgroundImage) {
+        
+        // Mettre à jour le formulaire
+        form.reset({
+          totalDays: settings.totalDays,
+          titleColor: settings.titleColor,
+          starColor: settings.starColor,
+          starBorderColor: settings.starBorderColor,
+          backgroundImage: settings.backgroundImage
+        });
+        
+        // Mettre à jour également les couleurs dans l'état local
+        setColorInputs({
+          titleColor: settings.titleColor,
+          starColor: settings.starColor,
+          starBorderColor: settings.starBorderColor
+        });
+      }
+    }
+  }, [settings, form]);
   
   // Update settings mutation
   const updateSettingsMutation = useMutation({
