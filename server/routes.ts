@@ -151,25 +151,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   app.post("/api/logout", (req, res) => {
+    console.log('📤 Logout attempt received');
+    
+    // Supprimer aussi le cookie direct
+    res.clearCookie('auth_token');
+    console.log('🍪 Auth cookie cleared');
+    
     // Simply destroy the session
     req.session.destroy((err) => {
       if (err) {
-        console.error("Session destruction error:", err);
+        console.error("❌ Session destruction error:", err);
         return res.status(500).json({ message: "Error during logout" });
       }
       
+      console.log('✅ Logout successful - Session destroyed');
       return res.status(200).json({ message: "Logout successful" });
     });
   });
   
   app.get("/api/auth/status", async (req, res) => {
     try {
-      // Just check if the token exists in the session
-      // This is simpler and will work with the session store
-      const isLoggedIn = !!req.session.token;
-      return res.status(200).json({ isLoggedIn });
+      console.log('🔍 Auth status check');
+      
+      // Vérifier d'abord la session
+      if (req.session.token) {
+        console.log('✅ Session token found');
+        return res.status(200).json({ isLoggedIn: true });
+      }
+      
+      // Si pas de token dans la session, vérifier les cookies directs
+      const authTokenCookie = req.cookies.auth_token;
+      if (authTokenCookie) {
+        console.log('🍪 Direct cookie token found, restoring session');
+        // Restaurer le token dans la session pour les prochaines requêtes
+        req.session.token = authTokenCookie;
+        return res.status(200).json({ isLoggedIn: true });
+      }
+      
+      console.log('❌ No auth token found in session or cookies');
+      return res.status(200).json({ isLoggedIn: false });
     } catch (error) {
-      console.error("Auth status error:", error);
+      console.error("❌ Auth status error:", error);
       return res.status(200).json({ isLoggedIn: false });
     }
   });

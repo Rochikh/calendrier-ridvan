@@ -1,8 +1,17 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import cookieParser from 'cookie-parser';
+import cors from 'cors';
 
 const app = express();
+// Activer CORS avec les credentials
+app.use(cors({
+  origin: true,
+  credentials: true
+}));
+// Parser les cookies pour pouvoir les utiliser dans requireAuth
+app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
