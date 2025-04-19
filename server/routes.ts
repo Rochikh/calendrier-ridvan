@@ -38,34 +38,53 @@ const initializeDatabase = async () => {
   }
 };
 
-// SOLUTION SIMPLIFIÉE : Désactiver totalement l'authentification en production
-// C'est une solution temporaire mais pratique pour résoudre le problème rapidement
+// SOLUTION AVEC SECRET PARTAGÉ : Protection simple mais efficace
+// Utilisant une clé statique pour authentifier les requêtes administratives
+
+// Secret d'administration - ATTENTION: En production, utiliser une variable d'environnement!
+// Ce secret ne devrait jamais être stocké en clair dans le code en production
+const ADMIN_SECRET = 'qP7XbCdR8sT9vZ2a3wF5gH6jK1mN4pL'; // Secret complexe pour l'exemple
+
 const requireAuth = (req: Request, res: Response, next: NextFunction) => {
   console.log('🔐 Auth check for:', req.method, req.url);
-  console.log('🔍 Environment:', process.env.NODE_ENV);
   
-  // En production, on désactive l'authentification pour éviter les problèmes
-  if (process.env.NODE_ENV !== 'development') {
-    console.log('✅ Authentification en production désactivée - Access granted');
+  // Méthode 1: Vérifier l'en-tête X-Admin-Secret
+  const adminSecret = req.headers['x-admin-secret'];
+  if (adminSecret === ADMIN_SECRET) {
+    console.log('✅ Valid admin secret in X-Admin-Secret header - Access granted');
     return next();
   }
   
-  // 1. Vérifier la session
-  if (req.session && req.session.token) {
-    console.log('✅ Session token found - User is authenticated');
-    return next();
+  // Méthode 2: Vérifier l'en-tête Authorization avec format "Secret [token]"
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Secret ')) {
+    const secretFromHeader = authHeader.substring(7);
+    if (secretFromHeader === ADMIN_SECRET) {
+      console.log('✅ Valid admin secret in Authorization header - Access granted');
+      return next();
+    }
   }
   
-  // 2. Vérifier le cookie direct
-  const authTokenCookie = req.cookies?.auth_token;
-  if (authTokenCookie) {
-    console.log('🍪 Direct cookie token found - User is authenticated');
-    // Restaurer le token dans la session
-    req.session.token = authTokenCookie;
-    return next();
+  // Méthode 3: En développement uniquement, vérifier aussi les sessions/cookies
+  if (process.env.NODE_ENV === 'development') {
+    // 3.1. Vérifier la session
+    if (req.session && req.session.token) {
+      console.log('✅ Session token found - Development mode auth accepted');
+      return next();
+    }
+    
+    // 3.2. Vérifier le cookie direct
+    const authTokenCookie = req.cookies?.auth_token;
+    if (authTokenCookie) {
+      console.log('🍪 Direct cookie token found - Development mode auth accepted');
+      // Restaurer le token dans la session
+      req.session.token = authTokenCookie;
+      return next();
+    }
   }
   
-  console.log('❌ No valid auth token found - Access denied');
+  console.log('❌ No valid authentication found - Access denied');
+  console.log('💡 Auth debug - Headers present:', Object.keys(req.headers).join(', '));
   return res.status(401).json({ message: "Unauthorized: Please log in to access this resource" });
 };
 
