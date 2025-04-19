@@ -381,6 +381,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       storageType: 'PostgreSQL',
       workingDirectory: process.cwd(),
       timestamp: new Date().toISOString(),
+      auth: {
+        hasCookies: !!req.cookies && Object.keys(req.cookies).length > 0,
+        cookieCount: req.cookies ? Object.keys(req.cookies).length : 0,
+        sessionExists: !!req.session,
+        isAuthenticated: !!req.session?.token,
+        authCookiePresent: !!req.cookies?.auth_token,
+        cookiesList: req.cookies ? Object.keys(req.cookies).join(', ') : 'No cookies'
+      },
       database: {
         connected: false,
         version: null,
@@ -427,6 +435,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         detail: err.detail
       };
     }
+    
+    // Ajouter des informations sur headers CORS pour le débogage
+    diagnosticInfo.headers = {
+      'access-control-allow-origin': res.getHeader('access-control-allow-origin'),
+      'access-control-allow-credentials': res.getHeader('access-control-allow-credentials'),
+      'vary': res.getHeader('vary')
+    };
     
     return res.status(200).json(diagnosticInfo);
   });
