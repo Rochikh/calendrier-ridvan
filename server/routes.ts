@@ -38,26 +38,70 @@ const initializeDatabase = async () => {
   }
 };
 
-// Auth middleware (simplified to use session directly)
+// Auth middleware (with multiple authentication methods)
 const requireAuth = (req: Request, res: Response, next: NextFunction) => {
-  console.log('🔐 Auth check - Session:', !!req.session, 'Token exists:', !!req.session?.token);
+  console.log('🔐 Auth check for:', req.method, req.url);
+  console.log('🔍 Headers:', Object.keys(req.headers));
+  console.log('🔍 Session:', !!req.session, 'Session Token:', !!req.session?.token);
+  console.log('🔍 Cookies:', Object.keys(req.cookies || {}));
   
-  // Vérifier d'abord la session
-  if (req.session.token) {
-    console.log('✅ Authentication successful - Token found in session');
-    return next();
+  // 1. Vérifier l'en-tête d'autorisation (solution principale pour les requêtes PUT/POST)
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const tokenFromHeader = authHeader.substring(7);
+    console.log('🔑 Authorization header found');
+    
+    // Vérifier que le token correspond à notre API key
+    if (tokenFromHeader === ADMIN_API_KEY) {
+      console.log('✅ Authentication successful - Valid API key in header');
+      
+      // Synchroniser aussi le token dans la session si possible
+      if (req.session) {
+        req.session.token = tokenFromHeader;
+      }
+      
+      return next();
+    } else {
+      console.log('⚠️ Invalid API key in Authorization header');
+    }
   }
   
-  // Si pas de token dans la session, vérifier les cookies directement
-  const authTokenCookie = req.cookies.auth_token;
+  // 2. Vérifier la session (solution classique)
+  if (req.session && req.session.token) {
+    // Vérifier que le token de session correspond à notre API key actuelle
+    if (req.session.token === ADMIN_API_KEY) {
+      console.log('✅ Authentication successful - Valid token in session');
+      return next();
+    } else {
+      console.log('⚠️ Session token exists but does not match current API key');
+    }
+  }
+  
+  // 3. Vérifier le cookie direct (solution de secours)
+  const authTokenCookie = req.cookies?.auth_token;
   if (authTokenCookie) {
-    console.log('🍪 Authentication via direct cookie - Token found');
-    // Restaurer le token dans la session pour les prochaines requêtes
-    req.session.token = authTokenCookie;
-    return next();
+    console.log('🍪 Direct cookie token found');
+    
+    // Vérifier que le cookie correspond à notre API key
+    if (authTokenCookie === ADMIN_API_KEY) {
+      console.log('✅ Authentication successful - Valid token in cookie');
+      
+      // Restaurer le token dans la session pour les prochaines requêtes
+      if (req.session) {
+        req.session.token = authTokenCookie;
+      }
+      
+      return next();
+    } else {
+      console.log('⚠️ Cookie token exists but does not match current API key');
+    }
   }
   
   console.log('❌ Authentication failed - No valid token found');
+  console.log('💡 Auth debug - Auth header exists:', !!req.headers.authorization);
+  console.log('💡 Auth debug - Session token exists:', !!req.session?.token);
+  console.log('💡 Auth debug - Cookie token exists:', !!req.cookies?.auth_token);
+  
   return res.status(401).json({ message: "Unauthorized: Please log in to access this resource" });
 };
 
@@ -182,23 +226,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/auth/status", async (req, res) => {
     try {
       console.log('🔍 Auth status check');
+      console.log('🔍 Headers:', Object.keys(req.headers));
       
-      // Vérifier d'abord la session
+      // 1. Vérifier l'en-tête d'autorisation
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        const tokenFromHeader = authHeader.substring(7);
+        
+        if (tokenFromHeader === ADMIN_API_KEY) {
+          console.log('✅ Valid API key in header - User is authenticated');
+          // Synchroniser aussi le token de session
+          req.session.token = tokenFromHeader;
+          return res.status(200).json({ isLoggedIn: true });
+        }
+      }
+      
+      // 2. Vérifier la session
       if (req.session.token) {
-        console.log('✅ Session token found');
-        return res.status(200).json({ isLoggedIn: true });
+        if (req.session.token === ADMIN_API_KEY) {
+          console.log('✅ Session token found and valid');
+          return res.status(200).json({ isLoggedIn: true });
+        } else {
+          console.log('⚠️ Session token exists but is invalid (expired/outdated)');
+        }
       }
       
-      // Si pas de token dans la session, vérifier les cookies directs
-      const authTokenCookie = req.cookies.auth_token;
+      // 3. Vérifier les cookies directs
+      const authTokenCookie = req.cookies?.auth_token;
       if (authTokenCookie) {
-        console.log('🍪 Direct cookie token found, restoring session');
-        // Restaurer le token dans la session pour les prochaines requêtes
-        req.session.token = authTokenCookie;
-        return res.status(200).json({ isLoggedIn: true });
+        console.log('🍪 Direct cookie token found');
+        
+        if (authTokenCookie === ADMIN_API_KEY) {
+          console.log('✅ Valid cookie token - restoring session');
+          // Restaurer le token dans la session pour les prochaines requêtes
+          req.session.token = authTokenCookie;
+          return res.status(200).json({ isLoggedIn: true });
+        } else {
+          console.log('⚠️ Cookie token exists but is invalid (expired/outdated)');
+        }
       }
       
-      console.log('❌ No auth token found in session or cookies');
+      console.log('❌ No valid auth token found - User is not authenticated');
       return res.status(200).json({ isLoggedIn: false });
     } catch (error) {
       console.error("❌ Auth status error:", error);
