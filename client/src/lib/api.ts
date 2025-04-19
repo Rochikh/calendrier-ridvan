@@ -33,8 +33,9 @@ export async function deleteContent(day: number): Promise<void> {
 }
 
 // Auth API
-export async function login(password: string): Promise<void> {
-  await apiRequest("POST", "/api/login", { password });
+export async function login(password: string): Promise<{ apiKey: string }> {
+  const response = await apiRequest("POST", "/api/login", { password });
+  return response.json();
 }
 
 export async function logout(): Promise<void> {

@@ -6,6 +6,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 type AuthContextType = {
   isLoggedIn: boolean;
   isLoading: boolean;
+  apiKey: string | null;
   login: (password: string) => Promise<boolean>;
   logout: () => Promise<void>;
 };
@@ -14,6 +15,9 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
+  const [apiKey, setApiKey] = useState<string | null>(
+    localStorage.getItem('auth_api_key') // Récupérer la clé API du localStorage s'il existe
+  );
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -42,7 +46,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   
   const login = async (password: string): Promise<boolean> => {
     try {
-      await apiLogin(password);
+      // La fonction apiLogin modifiée retourne maintenant un objet contenant apiKey
+      const loginResponse = await apiLogin(password);
+      
+      // Stocker la clé API en mémoire et dans localStorage
+      if (loginResponse.apiKey) {
+        setApiKey(loginResponse.apiKey);
+        localStorage.setItem('auth_api_key', loginResponse.apiKey);
+        console.log('🔑 API key saved to local storage and state');
+      }
+      
       await refetch(); // Immediately refetch auth status
       
       // Also invalidate the query to ensure fresh data across the app
@@ -68,6 +81,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const logout = async (): Promise<void> => {
     try {
       await apiLogout();
+      
+      // Supprimer la clé API du stockage
+      setApiKey(null);
+      localStorage.removeItem('auth_api_key');
+      console.log('🗑️ API key removed from local storage and state');
+      
       await refetch(); // Immediately refetch auth status
       
       // Also invalidate the query to ensure fresh data across the app
@@ -88,7 +107,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
   
   return (
-    <AuthContext.Provider value={{ isLoggedIn, isLoading, login, logout }}>
+    <AuthContext.Provider value={{ isLoggedIn, isLoading, apiKey, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

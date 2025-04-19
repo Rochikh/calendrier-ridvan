@@ -14,9 +14,19 @@ export async function apiRequest(
 ): Promise<Response> {
   console.log(`🔄 API Request: ${method} ${url}`, data ? data : '(no data)');
   
+  // Récupérer l'API key du localStorage si disponible
+  const apiKey = localStorage.getItem('auth_api_key');
+  
+  // Préparer les en-têtes
   const headers: Record<string, string> = {};
   if (data) {
     headers["Content-Type"] = "application/json";
+  }
+  
+  // Ajouter l'API key à l'en-tête Authorization si disponible
+  if (apiKey && method !== 'GET' && !url.includes('/api/login') && !url.includes('/api/logout')) {
+    headers["Authorization"] = `Bearer ${apiKey}`;
+    console.log('🔑 Using API key in Authorization header');
   }
   
   const options: RequestInit = {
@@ -29,7 +39,7 @@ export async function apiRequest(
   
   console.log('With fetch options:', { 
     method: options.method,
-    headers: options.headers,
+    hasApiKey: !!headers.Authorization,
     hasBody: !!options.body,
     credentials: options.credentials
   });
@@ -60,9 +70,20 @@ export const getQueryFn: <T>(options: {
   async ({ queryKey }) => {
     console.log(`🔍 Query: ${queryKey[0]}`);
     
+    // Récupérer l'API key du localStorage si disponible
+    const apiKey = localStorage.getItem('auth_api_key');
+    
     try {
+      // Créer des en-têtes avec l'API key si disponible
+      const headers: Record<string, string> = {};
+      if (apiKey) {
+        headers["Authorization"] = `Bearer ${apiKey}`;
+        console.log('🔑 Using API key in Authorization header for query');
+      }
+      
       const res = await fetch(queryKey[0] as string, {
         credentials: "include",
+        headers,
         // Cache: 'no-store' empêche le cache des requêtes, utile pour le débogage
         cache: 'no-store'
       });
