@@ -40,10 +40,25 @@ const initializeDatabase = async () => {
 
 // Auth middleware (simplified to use session directly)
 const requireAuth = (req: Request, res: Response, next: NextFunction) => {
-  if (!req.session.token) {
-    return res.status(401).json({ message: "Unauthorized: Please log in to access this resource" });
+  console.log('🔐 Auth check - Session:', !!req.session, 'Token exists:', !!req.session?.token);
+  
+  // Vérifier d'abord la session
+  if (req.session.token) {
+    console.log('✅ Authentication successful - Token found in session');
+    return next();
   }
-  next();
+  
+  // Si pas de token dans la session, vérifier les cookies directement
+  const authTokenCookie = req.cookies.auth_token;
+  if (authTokenCookie) {
+    console.log('🍪 Authentication via direct cookie - Token found');
+    // Restaurer le token dans la session pour les prochaines requêtes
+    req.session.token = authTokenCookie;
+    return next();
+  }
+  
+  console.log('❌ Authentication failed - No valid token found');
+  return res.status(401).json({ message: "Unauthorized: Please log in to access this resource" });
 };
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -81,37 +96,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
     resave: false,
     saveUninitialized: false,
     cookie: { 
-      secure: process.env.NODE_ENV === "production",
-      maxAge: 24 * 60 * 60 * 1000 // 24 hours
+      // En production, le cookie secure ne fonctionne qu'avec HTTPS
+      // Désactivons-le pour le moment pour résoudre le problème d'authentification
+      secure: false, 
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 jours pour une plus longue persistance
+      // Ces paramètres supplémentaires aident avec la compatibilité cross-site
+      httpOnly: true,
+      sameSite: 'lax'
     }
   }));
   
   // Auth routes
   app.post("/api/login", async (req, res) => {
     try {
+      console.log('📥 Login attempt received');
       const { password } = req.body;
       
       if (password !== ADMIN_PASSWORD) {
+        console.log('❌ Login failed - Invalid password');
         return res.status(401).json({ message: "Invalid password" });
       }
       
       // Create a simpler session token
       const token = randomBytes(32).toString("hex");
+      console.log('🔑 Generated new session token');
       
       // Save token to session (express-session will save this to DB)
       req.session.token = token;
+      console.log('💾 Token added to session object');
+      
+      // Set a cookie directly to ensure it works across environments
+      res.cookie('auth_token', token, {
+        httpOnly: true,
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        secure: false,
+        sameSite: 'lax'
+      });
+      console.log('🍪 Direct auth cookie set');
       
       // Save session explicitly
       req.session.save((err) => {
         if (err) {
-          console.error("Session save error:", err);
+          console.error("❌ Session save error:", err);
           return res.status(500).json({ message: "Error saving session" });
         }
         
+        console.log('✅ Login successful - Session saved');
         return res.status(200).json({ message: "Login successful" });
       });
     } catch (error) {
-      console.error("Login error:", error);
+      console.error("❌ Login error:", error);
       return res.status(500).json({ message: "Error during login" });
     }
   });
