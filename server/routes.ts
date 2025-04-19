@@ -107,6 +107,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }));
   
   // Auth routes
+  // Créer une clé d'API unique pour cette session
+  // Cette approche est simple mais efficace pour un petit projet
+  // Dans un vrai projet de production, utilisez un système plus robuste
+  let ADMIN_API_KEY = '';
+
   app.post("/api/login", async (req, res) => {
     try {
       console.log('📥 Login attempt received');
@@ -117,20 +122,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Invalid password" });
       }
       
-      // Create a simpler session token
-      const token = randomBytes(32).toString("hex");
-      console.log('🔑 Generated new session token');
+      // Générer une nouvelle clé API - solution simple mais efficace
+      ADMIN_API_KEY = randomBytes(32).toString("hex");
+      console.log('🔑 Generated new admin API key');
       
-      // Save token to session (express-session will save this to DB)
-      req.session.token = token;
+      // Stocker dans la session aussi comme backup
+      req.session.token = ADMIN_API_KEY;
       console.log('💾 Token added to session object');
       
       // Set a cookie directly to ensure it works across environments
-      res.cookie('auth_token', token, {
+      res.cookie('auth_token', ADMIN_API_KEY, {
         httpOnly: true,
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
         secure: false,
-        sameSite: 'lax'
+        sameSite: 'lax',
+        path: '/' // Assurer que le cookie est disponible sur tous les chemins
       });
       console.log('🍪 Direct auth cookie set');
       
@@ -141,8 +147,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(500).json({ message: "Error saving session" });
         }
         
+        // Envoyer la clé API au client pour qu'il puisse l'utiliser dans les en-têtes
         console.log('✅ Login successful - Session saved');
-        return res.status(200).json({ message: "Login successful" });
+        return res.status(200).json({ 
+          message: "Login successful",
+          apiKey: ADMIN_API_KEY // Envoyer la clé API au client
+        });
       });
     } catch (error) {
       console.error("❌ Login error:", error);
