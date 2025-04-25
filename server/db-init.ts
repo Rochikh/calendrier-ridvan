@@ -21,6 +21,7 @@ export async function createTables() {
     await db.execute(sql`
       CREATE TABLE IF NOT EXISTS settings (
         id SERIAL PRIMARY KEY,
+        app_title VARCHAR(255) NOT NULL DEFAULT 'Calendrier de Riḍván',
         title_color VARCHAR(255) NOT NULL DEFAULT '#1E3A8A',
         star_color VARCHAR(255) NOT NULL DEFAULT '#FCD34D',
         star_border_color VARCHAR(255) NOT NULL DEFAULT '#F59E0B',
@@ -30,6 +31,26 @@ export async function createTables() {
       )
     `);
     console.log('Settings table created or already exists');
+    
+    // Vérifier si la colonne app_title existe, sinon l'ajouter (migration)
+    try {
+      const columnCheckResult = await pool.query(`
+        SELECT column_name 
+        FROM information_schema.columns 
+        WHERE table_name='settings' AND column_name='app_title'
+      `);
+      
+      if (columnCheckResult.rows.length === 0) {
+        console.log('Migrating settings table: Adding app_title column...');
+        await pool.query(`
+          ALTER TABLE settings 
+          ADD COLUMN app_title VARCHAR(255) NOT NULL DEFAULT 'Calendrier de Riḍván'
+        `);
+        console.log('Migration successful: app_title column added');
+      }
+    } catch (error) {
+      console.error('Error checking/adding app_title column:', error);
+    }
     
     // Create content table
     await db.execute(sql`
@@ -64,8 +85,8 @@ export async function createTables() {
     // Insérer des réglages par défaut si la table est vide
     if (settingsCount === 0) {
       await pool.query(`
-        INSERT INTO settings (title_color, star_color, star_border_color, background_image, total_days)
-        VALUES ('#1E3A8A', '#FCD34D', '#F59E0B', 'https://images.unsplash.com/photo-1462331940025-496dfbfc7564?ixlib=rb-1.2.1&auto=format&fit=crop&w=2048&q=80', 19)
+        INSERT INTO settings (app_title, title_color, star_color, star_border_color, background_image, total_days)
+        VALUES ('Calendrier de Riḍván', '#1E3A8A', '#FCD34D', '#F59E0B', 'https://images.unsplash.com/photo-1462331940025-496dfbfc7564?ixlib=rb-1.2.1&auto=format&fit=crop&w=2048&q=80', 19)
       `);
       console.log('Default settings inserted');
     }

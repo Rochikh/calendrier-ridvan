@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 
 // Settings form schema
 const formSchema = z.object({
+  appTitle: z.string().min(1, "Le titre ne peut pas être vide").max(100, "Le titre est trop long"),
   totalDays: z.number().min(1).max(30),
   titleColor: z.string().regex(/^#([A-Fa-f0-9]{6})$/, "Invalid hex color code"),
   starColor: z.string().regex(/^#([A-Fa-f0-9]{6})$/, "Invalid hex color code"),
@@ -32,6 +33,7 @@ export default function AdminSettingsForm({ settings }: AdminSettingsFormProps) 
   
   // Default settings values
   const defaultValues = {
+    appTitle: settings?.appTitle || "Calendrier de Riḍván",
     totalDays: settings?.totalDays || 19,
     titleColor: settings?.titleColor || "#1E3A8A",
     starColor: settings?.starColor || "#FCD34D",
@@ -51,7 +53,8 @@ export default function AdminSettingsForm({ settings }: AdminSettingsFormProps) 
     if (settings) {
       const currentValues = form.getValues();
       
-      if (settings.totalDays !== currentValues.totalDays ||
+      if (settings.appTitle !== currentValues.appTitle ||
+          settings.totalDays !== currentValues.totalDays ||
           settings.titleColor !== currentValues.titleColor ||
           settings.starColor !== currentValues.starColor ||
           settings.starBorderColor !== currentValues.starBorderColor ||
@@ -59,6 +62,7 @@ export default function AdminSettingsForm({ settings }: AdminSettingsFormProps) 
         
         // Mettre à jour le formulaire
         form.reset({
+          appTitle: settings.appTitle,
           totalDays: settings.totalDays,
           titleColor: settings.titleColor,
           starColor: settings.starColor,
@@ -124,6 +128,25 @@ export default function AdminSettingsForm({ settings }: AdminSettingsFormProps) 
         
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            {/* Application Title Setting */}
+            <FormField
+              control={form.control}
+              name="appTitle"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="block text-gray-700 font-[Inter] mb-2">Titre de l'application</FormLabel>
+                  <FormControl>
+                    <Input 
+                      {...field}
+                      placeholder="Calendrier de Riḍván" 
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1E3A8A] font-[Inter]"
+                    />
+                  </FormControl>
+                  <FormDescription className="text-sm text-gray-500 mt-1">Nom affiché en haut de l'application</FormDescription>
+                </FormItem>
+              )}
+            />
+            
             {/* Number of Days Setting */}
             <FormField
               control={form.control}

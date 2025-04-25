@@ -17,6 +17,7 @@ export const insertUserSchema = createInsertSchema(users).pick({
 // Settings table for visual customization
 export const settings = pgTable("settings", {
   id: serial("id").primaryKey(),
+  appTitle: text("app_title").notNull().default("Calendrier de Riḍván"),
   titleColor: text("title_color").notNull().default("#1E3A8A"),
   starColor: text("star_color").notNull().default("#FCD34D"),
   starBorderColor: text("star_border_color").notNull().default("#F59E0B"),
