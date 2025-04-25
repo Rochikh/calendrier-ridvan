@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 // Settings form schema
 const formSchema = z.object({
   appTitle: z.string().min(1, "Le titre ne peut pas être vide").max(100, "Le titre est trop long"),
+  appDescription: z.string().min(1, "La description ne peut pas être vide").max(255, "La description est trop longue"),
   totalDays: z.number().min(1).max(30),
   titleColor: z.string().regex(/^#([A-Fa-f0-9]{6})$/, "Invalid hex color code"),
   starColor: z.string().regex(/^#([A-Fa-f0-9]{6})$/, "Invalid hex color code"),
@@ -34,6 +35,7 @@ export default function AdminSettingsForm({ settings }: AdminSettingsFormProps) 
   // Default settings values
   const defaultValues = {
     appTitle: settings?.appTitle || "Calendrier de Riḍván",
+    appDescription: settings?.appDescription || "The Festival of Paradise",
     totalDays: settings?.totalDays || 19,
     titleColor: settings?.titleColor || "#1E3A8A",
     starColor: settings?.starColor || "#FCD34D",
@@ -54,6 +56,7 @@ export default function AdminSettingsForm({ settings }: AdminSettingsFormProps) 
       const currentValues = form.getValues();
       
       if (settings.appTitle !== currentValues.appTitle ||
+          settings.appDescription !== currentValues.appDescription ||
           settings.totalDays !== currentValues.totalDays ||
           settings.titleColor !== currentValues.titleColor ||
           settings.starColor !== currentValues.starColor ||
@@ -63,6 +66,7 @@ export default function AdminSettingsForm({ settings }: AdminSettingsFormProps) 
         // Mettre à jour le formulaire
         form.reset({
           appTitle: settings.appTitle,
+          appDescription: settings.appDescription,
           totalDays: settings.totalDays,
           titleColor: settings.titleColor,
           starColor: settings.starColor,
@@ -143,6 +147,25 @@ export default function AdminSettingsForm({ settings }: AdminSettingsFormProps) 
                     />
                   </FormControl>
                   <FormDescription className="text-sm text-gray-500 mt-1">Nom affiché en haut de l'application</FormDescription>
+                </FormItem>
+              )}
+            />
+            
+            {/* Application Description Setting */}
+            <FormField
+              control={form.control}
+              name="appDescription"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="block text-gray-700 font-[Inter] mb-2">Description de l'application</FormLabel>
+                  <FormControl>
+                    <Input 
+                      {...field}
+                      placeholder="The Festival of Paradise" 
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1E3A8A] font-[Inter]"
+                    />
+                  </FormControl>
+                  <FormDescription className="text-sm text-gray-500 mt-1">Sous-titre affiché sous le titre principal</FormDescription>
                 </FormItem>
               )}
             />

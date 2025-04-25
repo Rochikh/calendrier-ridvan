@@ -100,6 +100,7 @@ export default function Home() {
   // Default values if settings are not loaded yet
   const {
     appTitle = "Riḍván",
+    appDescription = "The Festival of Paradise",
     titleColor = "#1E3A8A",
     starColor = "#FCD34D",
     starBorderColor = "#F59E0B",
@@ -133,7 +134,7 @@ export default function Home() {
             {appTitle}
           </h1>
           <p className="text-white font-[Inter] text-lg mt-2 opacity-80">
-            The Festival of Paradise
+            {appDescription}
           </p>
         </header>
         

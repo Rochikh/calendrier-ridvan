@@ -22,6 +22,7 @@ export async function createTables() {
       CREATE TABLE IF NOT EXISTS settings (
         id SERIAL PRIMARY KEY,
         app_title VARCHAR(255) NOT NULL DEFAULT 'Calendrier de Riḍván',
+        app_description VARCHAR(255) NOT NULL DEFAULT 'The Festival of Paradise',
         title_color VARCHAR(255) NOT NULL DEFAULT '#1E3A8A',
         star_color VARCHAR(255) NOT NULL DEFAULT '#FCD34D',
         star_border_color VARCHAR(255) NOT NULL DEFAULT '#F59E0B',
@@ -50,6 +51,26 @@ export async function createTables() {
       }
     } catch (error) {
       console.error('Error checking/adding app_title column:', error);
+    }
+    
+    // Vérifier si la colonne app_description existe, sinon l'ajouter (migration)
+    try {
+      const columnCheckResult = await pool.query(`
+        SELECT column_name 
+        FROM information_schema.columns 
+        WHERE table_name='settings' AND column_name='app_description'
+      `);
+      
+      if (columnCheckResult.rows.length === 0) {
+        console.log('Migrating settings table: Adding app_description column...');
+        await pool.query(`
+          ALTER TABLE settings 
+          ADD COLUMN app_description VARCHAR(255) NOT NULL DEFAULT 'The Festival of Paradise'
+        `);
+        console.log('Migration successful: app_description column added');
+      }
+    } catch (error) {
+      console.error('Error checking/adding app_description column:', error);
     }
     
     // Create content table
@@ -85,8 +106,8 @@ export async function createTables() {
     // Insérer des réglages par défaut si la table est vide
     if (settingsCount === 0) {
       await pool.query(`
-        INSERT INTO settings (app_title, title_color, star_color, star_border_color, background_image, total_days)
-        VALUES ('Calendrier de Riḍván', '#1E3A8A', '#FCD34D', '#F59E0B', 'https://images.unsplash.com/photo-1462331940025-496dfbfc7564?ixlib=rb-1.2.1&auto=format&fit=crop&w=2048&q=80', 19)
+        INSERT INTO settings (app_title, app_description, title_color, star_color, star_border_color, background_image, total_days)
+        VALUES ('Calendrier de Riḍván', 'The Festival of Paradise', '#1E3A8A', '#FCD34D', '#F59E0B', 'https://images.unsplash.com/photo-1462331940025-496dfbfc7564?ixlib=rb-1.2.1&auto=format&fit=crop&w=2048&q=80', 19)
       `);
       console.log('Default settings inserted');
     }
