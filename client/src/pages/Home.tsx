@@ -99,6 +99,7 @@ export default function Home() {
 
   // Default values if settings are not loaded yet
   const {
+    appTitle = "Riḍván",
     titleColor = "#1E3A8A",
     starColor = "#FCD34D",
     starBorderColor = "#F59E0B",
@@ -129,7 +130,7 @@ export default function Home() {
             className="font-[Cinzel] text-5xl md:text-7xl font-bold tracking-wider"
             style={{ color: titleColor }}
           >
-            Riḍván
+            {appTitle}
           </h1>
           <p className="text-white font-[Inter] text-lg mt-2 opacity-80">
             The Festival of Paradise
