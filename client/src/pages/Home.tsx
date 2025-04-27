@@ -28,10 +28,19 @@ export default function Home() {
   useEffect(() => {
     console.log("Content query for day", currentDay, ":", { content, error: contentError, isLoading: isLoadingContent });
     
+    // Si aucun jour n'est sélectionné, on ne fait rien
+    if (!currentDay) return;
+    
+    // Si les données sont en cours de chargement, on attend
+    if (isLoadingContent) return;
+    
+    // Une fois le chargement terminé, on traite les résultats
     if (contentError) {
       console.log(`Error loading content for day ${currentDay}:`, contentError);
       // Réinitialiser le contenu actuel en cas d'erreur (404)
       setCurrentContent(null);
+      // Ouvrir la modale même s'il y a erreur, pour afficher le message "Aucun contenu"
+      setIsModalOpen(true);
       return;
     }
     
@@ -41,17 +50,29 @@ export default function Home() {
       const contentItem = content[0]; 
       console.log("Using content item:", contentItem);
       setCurrentContent(contentItem);
+      // Ouvrir la modale avec le contenu
+      setIsModalOpen(true);
     } else {
       // Pas de contenu trouvé
       console.log(`No content found for day ${currentDay}`);
       setCurrentContent(null);
+      // Ouvrir la modale avec le message "Aucun contenu"
+      setIsModalOpen(true);
     }
   }, [content, contentError, isLoadingContent, currentDay]);
 
   // Handle star click
   const handleStarClick = (day: number) => {
+    // D'abord on définit le jour, ce qui va déclencher le chargement des données
     setCurrentDay(day);
-    setIsModalOpen(true);
+    
+    // Afficher directement un indicateur de chargement si le contenu n'est pas déjà chargé
+    if (isLoadingContent) {
+      setIsModalOpen(true);
+    }
+    
+    // Le reste du processus se fait dans l'effet useEffect
+    // La modale avec le contenu réel s'affichera une fois les données chargées
   };
 
   // Close modal
@@ -177,7 +198,16 @@ export default function Home() {
               >
                 Jour {currentDay}
               </h2>
-              <p className="text-gray-700 my-8">Aucun contenu n'est disponible pour ce jour.</p>
+              
+              {isLoadingContent ? (
+                <div className="flex flex-col items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4"></div>
+                  <p className="text-gray-600">Chargement du contenu...</p>
+                </div>
+              ) : (
+                <p className="text-gray-700 my-8">Aucun contenu n'est disponible pour ce jour.</p>
+              )}
+              
               <button 
                 className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                 onClick={closeModal}

@@ -14,6 +14,7 @@ export default function ContentModal({ isOpen, onClose, content, titleColor }: C
     // Cas 1: https://www.youtube.com/watch?v=VIDEO_ID
     // Cas 2: https://youtu.be/VIDEO_ID
     // Cas 3: https://www.youtube.com/embed/VIDEO_ID (déjà au format d'intégration)
+    // Cas 4: https://www.youtube.com/shorts/VIDEO_ID (format shorts)
     
     if (!url) return "";
     
@@ -27,6 +28,10 @@ export default function ContentModal({ isOpen, onClose, content, titleColor }: C
       } else if (url.includes("youtu.be/")) {
         // Extraire l'ID de la vidéo d'une URL youtu.be/
         const parts = url.split("youtu.be/");
+        videoId = parts[1] ? parts[1].split("?")[0] : "";
+      } else if (url.includes("youtube.com/shorts/")) {
+        // Extraire l'ID de la vidéo d'une URL youtube.com/shorts/
+        const parts = url.split("youtube.com/shorts/");
         videoId = parts[1] ? parts[1].split("?")[0] : "";
       } else if (url.includes("youtube.com/embed/")) {
         // Déjà au format d'intégration, on le renvoie tel quel
