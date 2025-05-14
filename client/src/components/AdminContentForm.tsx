@@ -442,11 +442,12 @@ export default function AdminContentForm({ totalDays, initialDay = 1 }: AdminCon
                   name="imageCaption"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="block text-gray-700 font-[Inter] mb-2">Caption</FormLabel>
+                      <FormLabel className="block text-gray-700 font-[Inter] mb-2">Caption (avec retours à la ligne)</FormLabel>
                       <FormControl>
-                        <Input 
+                        <Textarea 
                           {...field} 
-                          placeholder="Enter image caption (optional)" 
+                          rows={3}
+                          placeholder="Enter image caption (optional) - Les retours à la ligne seront préservés" 
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1E3A8A] font-[Inter]"
                         />
                       </FormControl>
@@ -456,11 +457,20 @@ export default function AdminContentForm({ totalDays, initialDay = 1 }: AdminCon
                 
                 <div className="mb-6">
                   <label className="block text-gray-700 font-[Inter] mb-2">Preview</label>
-                  <div className="border border-gray-300 rounded-lg p-2 h-48 bg-gray-100 flex items-center justify-center">
-                    {imagePreview ? (
-                      <img src={imagePreview} alt="Preview" className="max-h-full max-w-full object-contain" />
-                    ) : (
-                      <span className="text-gray-500 font-[Inter]">Image preview will appear here</span>
+                  <div className="border border-gray-300 rounded-lg p-2 bg-gray-100">
+                    <div className="h-48 flex items-center justify-center">
+                      {imagePreview ? (
+                        <img src={imagePreview} alt="Preview" className="max-h-full max-w-full object-contain" />
+                      ) : (
+                        <span className="text-gray-500 font-[Inter]">Image preview will appear here</span>
+                      )}
+                    </div>
+                    
+                    {/* Caption preview */}
+                    {form.watch("imageCaption") && (
+                      <div className="mt-2 bg-gray-50 p-3 rounded whitespace-pre-line text-sm text-gray-700 font-[Lora]">
+                        {form.watch("imageCaption")}
+                      </div>
                     )}
                   </div>
                 </div>

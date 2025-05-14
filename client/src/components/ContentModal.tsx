@@ -100,7 +100,9 @@ export default function ContentModal({ isOpen, onClose, content, titleColor }: C
               className="w-full rounded-lg shadow-md mb-3 max-h-[50vh] object-contain mx-auto"
             />
             {data.imageCaption && (
-              <p className="font-[Lora] text-gray-700 text-sm sm:text-base">{data.imageCaption}</p>
+              <div className="font-[Lora] text-gray-700 text-sm sm:text-base bg-gray-50 p-3 rounded-lg mt-2 whitespace-pre-line">
+                {data.imageCaption}
+              </div>
             )}
           </div>
         );
