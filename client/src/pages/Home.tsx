@@ -131,16 +131,22 @@ export default function Home() {
 
   return (
     <div className="relative min-h-screen overflow-x-hidden">
-      {/* Background with cosmic imagery */}
-      <div 
-        className="fixed inset-0 bg-cover bg-center bg-black" 
-        style={{ backgroundImage: `url(${backgroundImage})` }}
-      />
+      {/* Background with cosmic imagery - Affichage conditionnel pendant le chargement */}
+      {isLoadingSettings ? (
+        // Background de chargement simple
+        <div className="fixed inset-0 bg-black bg-opacity-90" />
+      ) : (
+        // Background avec l'image chargée depuis les paramètres
+        <div 
+          className="fixed inset-0 bg-cover bg-center bg-black" 
+          style={{ backgroundImage: `url(${backgroundImage})` }}
+        />
+      )}
       
-      {/* Starry overlay */}
+      {/* Starry overlay - Affiché seulement une fois les paramètres chargés */}
       <div className="fixed inset-0 bg-black bg-opacity-50 overflow-hidden">
         <div className="absolute inset-0">
-          {stars}
+          {!isLoadingSettings && stars}
         </div>
       </div>
       
@@ -148,25 +154,45 @@ export default function Home() {
       <div className="relative z-10 flex-1 flex flex-col min-h-screen">
         {/* Header Section */}
         <header className="text-center py-8 md:py-12">
-          <h1 
-            className="font-[Cinzel] text-5xl md:text-7xl font-bold tracking-wider"
-            style={{ color: titleColor }}
-          >
-            {appTitle}
-          </h1>
-          <p className="text-white font-[Inter] text-lg mt-2 opacity-80">
-            {appDescription}
-          </p>
+          {isLoadingSettings ? (
+            // Afficher un placeholder pendant le chargement
+            <div className="animate-pulse">
+              <div className="h-16 md:h-20 bg-gray-700 rounded-lg w-3/4 mx-auto mb-3"></div>
+              <div className="h-6 bg-gray-700 rounded w-1/2 mx-auto"></div>
+            </div>
+          ) : (
+            // Afficher le titre et la description une fois chargés
+            <>
+              <h1 
+                className="font-[Cinzel] text-5xl md:text-7xl font-bold tracking-wider"
+                style={{ color: titleColor }}
+              >
+                {appTitle}
+              </h1>
+              <p className="text-white font-[Inter] text-lg mt-2 opacity-80">
+                {appDescription}
+              </p>
+            </>
+          )}
         </header>
         
         {/* Star Grid Section */}
         <main className="flex-1 container mx-auto px-4 py-8">
-          <StarGrid 
-            totalDays={totalDays} 
-            starColor={starColor} 
-            starBorderColor={starBorderColor} 
-            onStarClick={handleStarClick} 
-          />
+          {isLoadingSettings ? (
+            // Afficher un indicateur de chargement pendant le chargement des paramètres
+            <div className="flex flex-col items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-white mb-4"></div>
+              <p className="text-white text-xl">Chargement du calendrier...</p>
+            </div>
+          ) : (
+            // Afficher la grille d'étoiles uniquement lorsque les paramètres sont chargés
+            <StarGrid 
+              totalDays={totalDays} 
+              starColor={starColor} 
+              starBorderColor={starBorderColor} 
+              onStarClick={handleStarClick} 
+            />
+          )}
         </main>
         
         {/* Footer with Admin Link */}
