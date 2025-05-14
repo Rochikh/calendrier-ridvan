@@ -4,11 +4,15 @@ import { useQuery } from "@tanstack/react-query";
 import StarGrid from "@/components/StarGrid";
 import ContentModal from "@/components/ContentModal";
 import { Settings, Content } from "@shared/schema";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function Home() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentDay, setCurrentDay] = useState<number | null>(null);
   const [currentContent, setCurrentContent] = useState<Content | null>(null);
+  
+  // Utilisez le contexte d'authentification pour déterminer si l'utilisateur est connecté
+  const { isLoggedIn } = useAuth();
 
   // Fetch settings
   const { data: settings, isLoading: isLoadingSettings } = useQuery<Settings>({
@@ -117,6 +121,25 @@ export default function Home() {
 
     generateStars();
   }, []);
+  
+  // Ajouter un raccourci clavier secret pour accéder à la page d'administration (Ctrl+Alt+A)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Si l'utilisateur appuie sur Ctrl+Alt+A
+      if (e.ctrlKey && e.altKey && e.key.toLowerCase() === 'a') {
+        // Rediriger vers la page d'administration
+        window.location.href = '/admin';
+      }
+    };
+    
+    // Ajouter l'écouteur d'événement
+    window.addEventListener('keydown', handleKeyDown);
+    
+    // Nettoyer l'écouteur d'événement lors du démontage du composant
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
 
   // Default values if settings are not loaded yet
   const {
@@ -195,11 +218,13 @@ export default function Home() {
           )}
         </main>
         
-        {/* Footer with Admin Link */}
+        {/* Footer with Admin Link - visible only for logged in admins */}
         <footer className="relative z-10 p-4 text-center">
-          <a href="/admin" className="text-white opacity-60 hover:opacity-100 text-sm font-[Inter] transition-opacity duration-300">
-            Administrator Access
-          </a>
+          {isLoggedIn && (
+            <a href="/admin" className="text-white opacity-60 hover:opacity-100 text-sm font-[Inter] transition-opacity duration-300">
+              Administrator Access
+            </a>
+          )}
         </footer>
       </div>
       
